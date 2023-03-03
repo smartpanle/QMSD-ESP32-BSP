@@ -1,0 +1,33 @@
+if (CONFIG_ZX1D28CEC27R_2424)
+    message(STATUS "Current board name is " ZX1D28CEC27R_2424)
+    set(board_dir board/no-mass-produce/ZX1D28CEC27R-2424)
+elseif (CONFIG_ZX3D50CE02S_USRC_4832)
+    message(STATUS "Current board name is " ZX3D50CE02S_USRC_4832)
+    set(board_dir board/esp32-s3/ZX3D50CE02S-USRC-4832)
+elseif (CONFIG_ZX3D95CE01S_UR_4848)
+    message(STATUS "Current board name is " ZX3D95CE01S_UR_4848)
+    set(board_dir board/esp32-s3/ZX3D95CE01S-UR-4848)
+elseif (CONFIG_ZX3D95CE01S_AR_4848)
+    message(STATUS "Current board name is " ZX3D95CE01S_AR_4848)
+    set(board_dir board/esp32-s3/ZX3D95CE01S-AR-4848)
+elseif (CONFIG_ZX4D30NE01S_UR_4827)
+    message(STATUS "Current board name is " ZX4D30NE01S_UR_4827)
+    set(board_dir board/esp32-s3/ZX4D30NE01S-UR-4827)
+elseif (CONFIG_ZX2D10GE01R_V_4848)
+    message(STATUS "Current board name is " ZX2D10GE01R_V_4848)
+    set(board_dir board/esp32-s3/ZX2D10GE01R-V-4848)
+elseif (CONFIG_ZX7D00CE01S_8048)
+    message(STATUS "Current board name is " ZX7D00CE01S_8048)
+    set(board_dir board/esp32-s3/ZX7D00CE01S-8048)
+elseif (CONFIG_ZXXDXXSPI_DEMO)
+    message(STATUS "Current board name is " ZXXDXXSPI_DEMO)
+    set(board_dir board/no-mass-produce/ZXXDXXSPI-DEMO)
+endif()
+
+set(requires driver esp_lcd bus screen qmsd_screen qmsd_touch qmsd_gui qmsd_button encoder_ab)
+
+idf_component_register(
+    SRC_DIRS ${board_dir} board_utility 
+    INCLUDE_DIRS ${board_dir} board_utility
+    REQUIRES ${requires}
+)

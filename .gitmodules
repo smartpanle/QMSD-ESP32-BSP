@@ -1,0 +1,4 @@
+[submodule "components/qmsd_gui"]
+	path = components/qmsd_gui
+	url = git@gitee.com:qiming-zhixian/qmsd_gui.git
+	branch = master

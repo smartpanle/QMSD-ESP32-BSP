@@ -1,0 +1,141 @@
+menu "QMSD Hal"
+    choice QMSD_BOARD
+        prompt "QMSD Board"
+        default ZX3D50CE02S_USRC_4832
+        help
+            Select an board to use with the qmsd sdk
+        config QMSD_BOARD_CUSTOM
+            bool "Custom QMSD Board"
+        config ZX2D10GE01R_V_4848
+            bool "ZX2D10GE01R_V_4848"
+        config ZX1D28CEC27R_2424
+            bool "ZX1D28CEC27R_2424"
+        config ZX3D50CE02S_USRC_4832
+            bool "ZX3D50CE02S_USRC_4832"
+        config ZX3D95CE01S_UR_4848
+            bool "ZX3D95CE01S_UR_4848"
+        config ZX3D95CE01S_AR_4848
+            bool "ZX3D95CE01S_AR_4848"
+        config ZX4D30NE01S_UR_4827
+            bool "ZX4D30NE01S_UR_4827"
+        config ZX7D00CE01S_8048
+            bool "ZX7D00CE01S_8048"
+        config ZXXDXXSPI_DEMO
+            bool "ZXXDXXSPI_DEMO"
+    endchoice
+
+    choice QMSD_SCREEN_ROTATION
+        prompt "QMSD Screen Rotation" 
+        default SCREEN_ROLL_0
+        config SCREEN_ROLL_0
+            bool "Rotate 0 Degree"
+        config SCREEN_ROLL_2
+            bool "Rotate 90 Degree"
+        config SCREEN_ROLL_1
+            bool "Rotate 180 Degree"
+        config SCREEN_ROLL_3
+            bool "Rotate 270 Degree"
+    endchoice
+
+    menu "QMSD Board Backlight"
+        config QMSD_BOARD_BACKLIGHT_VALUE
+            int "Init value"
+            range 0 100
+            default 100
+        config QMSD_BOARD_BACKLIGHT_DELAY
+            int "Delay ms after startup to enable the backlight"
+            default 100
+    endmenu
+
+    config QMSD_BOARD_TOUCH_EN
+        bool "Enable Touch Initialization"
+        default y
+
+    menu "QMSD Touch Config"
+        depends on QMSD_BOARD_TOUCH_EN
+        config QMSD_TOUCH_I2C_FREQ
+            int "Touch i2c driver speed"
+            default 400000
+        config QMSD_TOUCH_THREAD_EN
+            bool "Touch read in thread"
+            default y
+        config QMSD_TOUCH_THREAD_PRIORITY
+            int "Touch read thread priority"
+            default 5
+        config QMSD_TOUCH_THREAD_CORE
+            int "Touch read thread core"
+            default 0
+        config QMSD_TOUCH_THREAD_STACK_SIZE
+            int "Touch read thread stack size"
+            default 4096
+    endmenu
+
+    config QMSD_BOARD_GUI_EN
+        bool "Enable Gui initialization"
+        default y
+
+    menu "QMSD Gui Config"
+        depends on QMSD_BOARD_GUI_EN
+        config QMSD_GUI_AVOID_TE_EN
+            bool "Gui enable avoid tear effect"
+            default n
+        config QMSD_GUI_DOUBLE_BUFFER
+            bool "Gui enable double buffer"
+            default y
+        config QMSD_GUI_BUFFER_IN_PSRAM
+            bool "Gui buffers in psram"
+            default y
+        config QMSD_GUI_BUFFER_SIZE
+            int "Gui buffer size, 0 refers to the full screen buffer"
+            default 0
+        config QMSD_GUI_FULL_REFRESH
+            bool "Gui driver full refresh"
+            default n
+        config QMSD_GUI_REFRESH_THREAD_EN
+            bool "Gui enable refresh in thread"
+            default y
+        config QMSD_GUI_REFRESH_THREAD_PRIORITY
+            depends on QMSD_GUI_REFRESH_THREAD_EN
+            int "Gui refresh thread priority"
+            default 5
+        config QMSD_GUI_REFRESH_THREAD_CORE
+            depends on QMSD_GUI_REFRESH_THREAD_EN
+            int "Gui refresh thread core"
+            default 0
+        config QMSD_GUI_REFRESH_THREAD_STACK_SIZE
+            depends on QMSD_GUI_REFRESH_THREAD_EN
+            int "Gui refresh thread stack size"
+            default 4096
+        config QMSD_GUI_UPDATE_THREAD_EN
+            bool "Gui enable update thread"
+            default y
+        config QMSD_GUI_UPDATE_THREAD_PRIORITY
+            depends on QMSD_GUI_UPDATE_THREAD_EN
+            int "Gui update thread priority"
+            default 5
+        config QMSD_GUI_UPDATE_THREAD_CORE
+            depends on QMSD_GUI_UPDATE_THREAD_EN
+            int "Gui update thread core"
+            default 0
+        config QMSD_GUI_UPDATE_THREAD_STACK_SIZE
+            depends on QMSD_GUI_UPDATE_THREAD_EN
+            int "Gui update thread stack size"
+            default 4096
+    endmenu
+
+    menu "IDF-5.0 Adaptation"
+        config I2S_SUPPRESS_DEPRECATE_WARN
+            bool "I2S disable i2s.h deprecate warn"
+            default y
+        config ADC_SUPPRESS_DEPRECATE_WARN
+            bool "ADC disable deprecate warn"
+            default y
+        config PCNT_SUPPRESS_DEPRECATE_WARN
+            bool "PCNT disable deprecate warn"
+            default y
+        config RMT_SUPPRESS_DEPRECATE_WARN
+            bool "RMT disable deprecate warn"
+            default y
+    endmenu
+
+endmenu
