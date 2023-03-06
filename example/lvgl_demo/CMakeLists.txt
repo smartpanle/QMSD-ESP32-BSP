@@ -10,6 +10,7 @@ if(NOT DEFINED ENV{QMSD_8MS_PATH})
     set(ENV{QMSD_8MS_PATH} ${QMSD_8MS_PATH})
 endif()
 
+set(ENV{SDKCONFIG_DEFAULTS} "sdkconfig.defaults;sdkconfig.lvgl")
 include($ENV{QMSD_8MS_PATH}/component.cmake)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(lvgl_demo)
