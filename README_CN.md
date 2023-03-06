@@ -1,53 +1,55 @@
-# ESP32-8MS介绍
 
-[English Version](./README.md)
 
-ESP32-8MS 包含屏幕驱动，触摸及UI框架等，方便用户可快速开发启明智显开发板
+# QMSD-ESP32-BSP
+
+  [English Version](./README.md)  
+
+qmsd-esp32-bsp 包含了屏幕驱动、触摸功能和 UI 框架等，方便用户快速开发启明智显开发板。
 
 已支持的开发板:
 
--  ZX1D28CEC27R-2424
--  ZX2D10GE01R-V-4848
--  ZX3D50CE02S-USRC-4832
--  ZX3D95CE01S-AR-4848
--  ZX3D95CE01S-UR-4848
--  ZX4D30NE01S-UR-4827
+- ZX1D28CEC27R-2424
+- ZX2D10GE01R-V-4848
+- ZX3D50CE02S-USRC-4832
+- ZX3D95CE01S-AR-4848
+- ZX3D95CE01S-UR-4848
+- ZX4D30NE01S-UR-4827
+- ZX7D00CE01S-8048
 
 
 支持的UI驱动, 默认为 LVGL-8.3.1
 
--  LVGL-8.3.1
--  LVGL-7.11
+- LVGL-8.3.1
+- LVGL-7.11
 
 
 支持的传感器:
 
--  aht20 - 温湿度传感器
--  sht20 - 温湿度传感器
--  al01 - 遥控器驱动芯片
--  aw9523 - IO扩展芯片
--  encoder_ab - AB编码器
--  ltr303als01 - 亮度传感器
+- aht20 - 温湿度传感器
+- sht20 - 温湿度传感器
+- al01 - 遥控器驱动芯片
+- aw9523 - IO扩展芯片
+- encoder_ab - AB编码器
+- ltr303als01 - 亮度传感器
 
 
 其它的一些库:
 
--  I2C 驱动库，进行了一些底层的封装，更实用些
--  Button 支持，带有ADC按键和普通按键，支持回调和阻塞读取状态
--  MP3 解码库，对libhelix-mp3的一个FreeRTOS数据流封装
+- I2C 驱动库，进行了一些底层的封装，更实用些
+- Button 支持，带有ADC按键和普通按键，支持回调和阻塞读取状态
+- MP3 解码库，对libhelix-mp3的一个FreeRTOS数据流封装
 
 
 # 使用说明
 
 ESP-IDF 支持
 
--    [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)   
-<!-- -    [v5.0 release](https://github.com/espressif/esp-idf/tree/release/v5.0)   -->
+-   [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)     
 
 
 使用前依赖：
 
-1. 安装ESP-IDF   **v4.4**  环境  [(教程)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)  ，测试可以成功编译ESP-IDF里的example/get-started
+1. 安装ESP-IDF     **v4.4**    环境    [(教程)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)    ，测试可以成功编译ESP-IDF里的example/get-started
 1. 选择芯片为ESP32-S3，再次成功编译example/get-started
 
 
@@ -59,9 +61,26 @@ ESP-IDF 支持
 1. idf.py build 编译
 
 
+## 使用qmsd-esp32-bsp作为组件
+
+方法一：设置环境变量  **QMSD_8MS_PATH**  指向SDK的地址，CMakeLists.txt 里 添加
+
+```
+include($ENV{QMSD_8MS_PATH}/component.cmake)
+```
+
+方法二：将SDK拷贝到个人工程，命名为 xxx，CMakeLists.txt 里 添加
+
+```
+set(ENV{QMSD_8MS_PATH} ${CMAKE_SOURCE_DIR}/xxx)
+include($ENV{QMSD_8MS_PATH}/component.cmake)
+```
+
+> 参考example/get-start/CMakeLists.txt
+
 ## 使用到的ESP32硬件外设
 
-- **LEDC**   -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
+- **LEDC**     -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
 
 
 # 快捷命令
@@ -116,7 +135,8 @@ idf.py release-components
 
 # 其它参考资源
 
-- 启明智显低代码快速开发平台   [https://8ms.xyz/appshop](https://8ms.xyz/appshop)  
-- ESP-IDF 编程指南, 建议版本为ESP-IDF v4.4   [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html) 
-- LVGL 编程指南   [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)    [ ](https://8ms.xyz/appshop)  
+- 启明智显低代码快速开发平台     [https://8ms.xyz/appshop](https://8ms.xyz/appshop)    
+- ESP-IDF 编程指南, 建议版本为ESP-IDF v4.4     [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html)   
+- LVGL 编程指南     [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)        [ ](https://8ms.xyz/appshop)  
+
 

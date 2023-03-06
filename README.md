@@ -1,6 +1,8 @@
+
+
 # ESP32-8MS Introduction
 
-[中文版](./README_CN.md)
+  [中文版](./README_CN.md)  
 
 ESP32-8MS includes the screen driver, touch and UI framework, which allows users to quickly develop the panlee development board.
 
@@ -41,13 +43,12 @@ Some other libraries:
 
 ESP-IDF support
 
--    [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)   
-<!-- -    [v5.0 release](https://github.com/espressif/esp-idf/tree/release/v5.0)   -->
+-   [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)     
 
 
 Pre-use dependencies:
 
-1. Install ESP-IDF v4.4 environment [(tutorial)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html), and test the successful compilation of sample/get-started in ESP-IDF.
+1. Install ESP-IDF v4.4 environment   [(tutorial)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)  , and test the successful compilation of sample/get-started in ESP-IDF.
 1. Select the chip as ESP32-S3 and compile example/get-started again successfully.
 
 
@@ -55,13 +56,30 @@ Steps to use：
 
 1. Go to example/get-start
 1. Load the ESP-IDF environment
-1. **idf.py load-board**   Load the target board configuration
-1. **idf.py build**   Compile
+1. **idf.py load-board**     Load the target board configuration
+1. **idf.py build**     Compile
 
+
+## Use qmsd-esp32-bsp as a component
+
+Method 1: Set the environment variable   **QMSD_8MS_PATH **  to point to the address of the SDK, add it to CMakeLists.txt
+
+```
+include($ENV{QMSD_8MS_PATH}/component.cmake)
+```
+
+Method 2: Copy the SDK to your personal project, name it xxx, add it to CMakeLists.txt
+
+```
+set(ENV{QMSD_8MS_PATH} ${CMAKE_SOURCE_DIR}/xxx)
+include($ENV{QMSD_8MS_PATH}/component.cmake)
+```
+
+> Reference: example/get-start/CMakeLists.txt
 
 # The ESP32 hardware peripherals used
 
-- **LEDC**   -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
+- **LEDC**     -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
 
 
 # Shortcut Commands
@@ -98,11 +116,11 @@ After the project is successfully compiled, run:
 idf.py generate-firmware
 ```
 
-The script will find the bin files generated in the build folder, and then package them into a single file, generating   **firmware_xxx.bin**   in the run directory, xxx represents the offset address of the bin file burned
+The script will find the bin files generated in the build folder, and then package them into a single file, generating     **firmware_xxx.bin**     in the run directory, xxx represents the offset address of the bin file burned
 
 ### Release Project
 
-The script can quickly package the components that need to be packaged to extract the compiled   **.a**   file for release
+The script can quickly package the components that need to be packaged to extract the compiled     **.a**     file for release
 
 Rules to determine whether the project needs to be packaged or not: if there is CMakeLists.release in the project directory components, it will delete the .c file under the component, replace CMakeLists.release with cmake file, and extract the .a file from the project's build directory to the component.
 
@@ -116,8 +134,8 @@ After running the project, a component_release directory is created under the bu
 
 # Other reference resources
 
-- Panlee Low-Code Rapid Development Platform   [https://8ms.xyz/appshop](https://8ms.xyz/appshop)  
-- ESP-IDF Programming Guide, the recommended version is ESP-IDF v4.4   [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html)  
-- LVGL Programming Guide   [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)    [ ](https://8ms.xyz/appshop)  
+- Panlee Low-Code Rapid Development Platform     [https://8ms.xyz/appshop](https://8ms.xyz/appshop)    
+- ESP-IDF Programming Guide, the recommended version is ESP-IDF v4.4     [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html)    
+- LVGL Programming Guide     [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)        [ ](https://8ms.xyz/appshop)  
 
 
