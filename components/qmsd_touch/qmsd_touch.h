@@ -1,6 +1,8 @@
 #pragma once
 
 #include "stdint.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "qmsd_utils.h"
 
 #ifdef __cplusplus
@@ -83,6 +85,7 @@ extern touch_panel_driver_t touch_cst816t_driver;
 extern touch_panel_driver_t touch_gt911_driver;
 extern touch_panel_driver_t touch_chsc6540_driver;
 extern touch_panel_driver_t touch_sp2010_driver;
+extern touch_panel_driver_t touch_cst328_driver;
 
 qmsd_err_t touch_init(touch_panel_driver_t* touch_panel, touch_panel_config_t* panel_config);
 
