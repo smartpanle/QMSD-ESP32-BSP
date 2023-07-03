@@ -59,6 +59,10 @@ static void backlight_timer_cb( TimerHandle_t pxTimer ) {
 void qmsd_board_backlight_set_delay(float light, uint32_t delay_ms) {
     static float light_pos;
     light_pos = light;
-    TimerHandle_t _timer = xTimerCreate("blk", pdMS_TO_TICKS(delay_ms), true, (void *)&light_pos, backlight_timer_cb);
-    xTimerStart(_timer, 0);
+    if (delay_ms == 0) {
+        qmsd_board_backlight_set(light_pos);
+    } else {
+        TimerHandle_t _timer = xTimerCreate("blk", pdMS_TO_TICKS(delay_ms), true, (void *)&light_pos, backlight_timer_cb);
+        xTimerStart(_timer, 0);
+    }
 }

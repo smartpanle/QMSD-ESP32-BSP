@@ -3,6 +3,7 @@
 #include "stdint.h"
 #include "esp_heap_caps.h"
 #include "esp_idf_version.h"
+#include "esp_log.h"
 #include "qmsd_err.h"
 
 #ifdef __cplusplus
