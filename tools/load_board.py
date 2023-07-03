@@ -35,10 +35,10 @@ def get_qmsd_sdk_path():
     return '/'.join(dirname.split('/')[:-1])
 
 def scan_board(path):
-    chip_type =  os.listdir(path)
+    chip_type = [i for i in os.listdir(path) if not i.startswith('.')]
     board = {}
     for chip in chip_type:
-        boards = os.listdir(f'{path}/{chip}')
+        boards = [i for i in os.listdir(f'{path}/{chip}') if not i.startswith('.')]
         for i in boards:
             board[i] = f'{path}/{chip}/{i}'
     return board
