@@ -6,14 +6,18 @@ menu "QMSD Hal"
             Select an board to use with the qmsd sdk
         config QMSD_BOARD_CUSTOM
             bool "Custom QMSD Board"
-        config ZX2D10GE01R_V_4848
-            bool "ZX2D10GE01R_V_4848"
         config ZX1D28CEC27R_2424
             bool "ZX1D28CEC27R_2424"
+        config ZX2D10GE01R_V_4848
+            bool "ZX2D10GE01R_V_4848"
+        config ZX2D10CE01S_4848
+            bool "ZX2D10CE01S_4848"
         config ZX3D50CE02S_USRC_4832
             bool "ZX3D50CE02S_USRC_4832"
         config ZX3D95CE01S_UR_4848
             bool "ZX3D95CE01S_UR_4848"
+        config ZX3D95CE01S_TR_4848
+            bool "ZX3D95CE01S_TR_4848"
         config ZX3D95CE01S_AR_4848
             bool "ZX3D95CE01S_AR_4848"
         config ZX4D30NE01S_UR_4827

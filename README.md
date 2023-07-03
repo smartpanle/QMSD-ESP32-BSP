@@ -8,13 +8,14 @@ ESP32-8MS includes the screen driver, touch and UI framework, which allows users
 
 Supported development boards:
 
-- ZX1D28CEC27R-2424
+- ZX2D10CE01S-4848
 - ZX2D10GE01R-V-4848
 - ZX3D50CE02S-USRC-4832
 - ZX3D95CE01S-AR-4848
+- ZX3D95CE01S-TR-4848
 - ZX3D95CE01S-UR-4848
 - ZX4D30NE01S-UR-4827
-
+- ZX7D00CE01S-8048
 
 Supported UI drivers, default is LVGL-8.3.1
 

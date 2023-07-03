@@ -50,7 +50,7 @@ static esp_err_t qmsd_screen_init(const scr_controller_config_t *lcd_conf) {
             LCD_D14_GPIO,
             LCD_D15_GPIO,
         },
-        .bounce_buffer_size_px = QMSD_RGB_CLK_FREQ > 15000000 ? QMSD_SCREEN_WIDTH * 16 : 0,
+        .bounce_buffer_size_px = QMSD_RGB_CLK_FREQ > 15000000 ? QMSD_SCREEN_WIDTH * (QMSD_SCREEN_HIGHT / 16) : 0,
         .clk_src = USER_RGB_CLK_SRC_PLL240M,
         .timings = {
             .pclk_hz = QMSD_RGB_CLK_FREQ,

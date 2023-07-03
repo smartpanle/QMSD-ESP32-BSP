@@ -27,7 +27,7 @@ static esp_err_t qmsd_screen_init(const scr_controller_config_t *lcd_conf) {
     (void)lcd_conf;
     qmsd_lcd_rgb_panel_config_t panel_config = {
         .data_width = 16,
-        .disp_gpio_num = LCD_DISP_EN_GPIO,
+        .disp_gpio_num = -1,
         .pclk_gpio_num = LCD_PCLK_GPIO,
         .vsync_gpio_num = LCD_VSYNC_GPIO,
         .hsync_gpio_num = LCD_HSYNC_GPIO,
@@ -50,7 +50,7 @@ static esp_err_t qmsd_screen_init(const scr_controller_config_t *lcd_conf) {
             LCD_D14_GPIO,
             LCD_D15_GPIO,
         },
-        .bounce_buffer_size_px = QMSD_RGB_CLK_FREQ > 15000000 ? QMSD_SCREEN_WIDTH * (QMSD_SCREEN_HIGHT / 16) : 0,
+        .bounce_buffer_size_px = QMSD_RGB_CLK_FREQ > 15000000 ? QMSD_SCREEN_WIDTH * 16 : 0,
         .clk_src = USER_RGB_CLK_SRC_PLL240M,
         .timings = {
             .pclk_hz = QMSD_RGB_CLK_FREQ,
@@ -71,6 +71,9 @@ static esp_err_t qmsd_screen_init(const scr_controller_config_t *lcd_conf) {
         },
     };
 
+    extern void qmsd_rgb_spi_init();
+    qmsd_rgb_spi_init();
+
     qmsd_lcd_new_rgb_panel(&panel_config, &g_rgb_panel_handle);
     g_rgb_panel_handle->reset(g_rgb_panel_handle);
     return g_rgb_panel_handle->init(g_rgb_panel_handle);
@@ -82,5 +85,6 @@ static esp_err_t qmsd_screen_draw_pixel(uint16_t x, uint16_t y, uint16_t color) 
 
 static esp_err_t qmsd_screen_drawbitmap(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t *bitmap) {
     g_rgb_panel_handle->draw_bitmap(g_rgb_panel_handle, x, y, x + w, y + h, (void *)bitmap);
+    vTaskDelay(pdMS_TO_TICKS(2));
     return ESP_OK;
 }
