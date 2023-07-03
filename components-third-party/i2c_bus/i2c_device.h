@@ -4,13 +4,8 @@
 extern "C" {
 #endif
 
-#include "esp_log.h"
-#include "driver/gpio.h"
-#include "driver/i2c.h"
-
-// #define CONFIG_I2C_DEVICE_DEBUG_INFO
-#define CONFIG_I2C_DEVICE_DEBUG_ERROR
-// #define CONFIG_I2C_DEVICE_DEBUG_REG
+#include "stdint.h"
+#include "i2c_device_hal.h"
 
 /**
  * @brief Used when the I2C peripheral does not use registers 
@@ -48,25 +43,26 @@ extern "C" {
 typedef void * I2CDevice_t;
 /* @[declare_i2cdevice_t] */
 
-I2CDevice_t i2c_malloc_device(i2c_port_t i2c_num, gpio_num_t sda, gpio_num_t scl, uint32_t freq, uint8_t device_addr);
+
+I2CDevice_t i2c_malloc_device(int i2c_num, int8_t sda, int8_t scl, uint32_t freq, uint8_t device_addr);
 
 void i2c_free_device(I2CDevice_t i2c_device);
 
-esp_err_t i2c_apply_bus(I2CDevice_t i2c_device);
+int i2c_apply_bus(I2CDevice_t i2c_device);
 
-esp_err_t i2c_free_bus(I2CDevice_t i2c_device);
+int i2c_free_bus(I2CDevice_t i2c_device);
 
-esp_err_t i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq);
+int i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq);
 
-esp_err_t i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout);
+int i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout);
 
-esp_err_t i2c_device_set_reg_bits(I2CDevice_t i2c_device, uint32_t reg_bit);
+int i2c_device_set_reg_bits(I2CDevice_t i2c_device, uint32_t reg_bit);
 
-esp_err_t i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
+int i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
 
-esp_err_t i2c_read_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t* data);
+int i2c_read_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t* data);
 
-esp_err_t i2c_read_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos);
+int i2c_read_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos);
 
 /*
     Read bits from 8 bit reg
@@ -75,17 +71,16 @@ esp_err_t i2c_read_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data,
              0b|-|x|x|x|-|-|-|-|   
     data = 0b00000010
 */
-esp_err_t i2c_read_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos, uint8_t bit_length);
+int i2c_read_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos, uint8_t bit_length);
 
-esp_err_t i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
+int i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
 
-esp_err_t i2c_read_bytes_no_stop(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
+int i2c_read_bytes_no_stop(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length);
 
-esp_err_t i2c_write_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data);
+int i2c_write_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data);
 
-esp_err_t i2c_write_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos);
+int i2c_write_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos);
 
-esp_err_t i2c_bus_scan_print(I2CDevice_t i2c_device);
 /*
     Read before bits from 8 bit reg, then update write bits
     1. Read data 0b10101100
@@ -95,14 +90,13 @@ esp_err_t i2c_bus_scan_print(I2CDevice_t i2c_device);
     write -> 0b|1|1|0|1|1|1|0|0|  
     data = 0b00000101
 */
-esp_err_t i2c_write_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos, uint8_t bit_length);
+int i2c_write_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos, uint8_t bit_length);
 
-esp_err_t i2c_device_valid(I2CDevice_t i2c_device);
+int i2c_device_valid(I2CDevice_t i2c_device);
 
-BaseType_t i2c_take_port(i2c_port_t i2c_num, uint32_t timeout);
+int i2c_bus_scan_print(I2CDevice_t i2c_device);
 
-BaseType_t i2c_free_port(i2c_port_t i2c_num);
-
+int i2c_bus_scan_print_by_read(I2CDevice_t i2c_device);
 
 #ifdef __cplusplus
 }

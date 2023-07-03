@@ -1,59 +1,20 @@
 #include <inttypes.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "driver/i2c.h"
-#include "hal/gpio_hal.h"
-#include "esp_log.h"
-#include "esp_err.h"
-
+#include "string.h"
+#include "i2c_device_hal.h"
 #include "i2c_device.h"
 
-#define TAG "I2C-DEVICE"
-
-#ifdef CONFIG_I2C_DEVICE_DEBUG_INFO
-#define log_i(format...) ESP_LOGI(TAG, format)
-#else
-#define log_i(format...)
-#endif
-
-#ifdef CONFIG_I2C_DEVICE_DEBUG_ERROR
-#define log_e(format...) ESP_LOGE(TAG, format)
-#else
-#define log_e(format...)
-#endif
-
-#ifdef CONFIG_I2C_DEVICE_DEBUG_REG
-#define log_reg(buffer, buffer_len) ESP_LOG_BUFFER_HEX(TAG, buffer, buffer_len)
-#else
-#define log_reg(buffer, buffer_len)
-#endif
-
-#define I2C_TIMEOUT_MS (100)
-
-typedef struct _i2c_port_obj_t {
-    i2c_port_t port;
-    gpio_num_t scl;
-    gpio_num_t sda;
-    uint32_t freq;
-    int timeout;
-} i2c_port_obj_t;
-
-typedef struct _i2c_device_t {
-    i2c_port_obj_t* i2c_port;
-    uint8_t reg_bit;
-    uint8_t addr;
-} i2c_device_t;
-
-static SemaphoreHandle_t i2c_mutex[I2C_NUM_MAX];
+static I2C_MUTEX_TYPE_T i2c_mutex[I2C_NUM_MAX];
 static i2c_port_obj_t *i2c_port_used[I2C_NUM_MAX] = { NULL };
+// used for freq or timeout update
+static i2c_port_obj_t i2c_port_temp;
 
-I2CDevice_t i2c_malloc_device(i2c_port_t i2c_num, gpio_num_t sda, gpio_num_t scl, uint32_t freq, uint8_t device_addr) {
+I2CDevice_t i2c_malloc_device(int i2c_num, int8_t sda, int8_t scl, uint32_t freq, uint8_t device_addr) {
     if (i2c_num > I2C_NUM_MAX) {
         i2c_num = I2C_NUM_MAX;
     }
 
     for (uint8_t i = 0; i < I2C_NUM_MAX; i++) {
-        i2c_mutex[i] = xSemaphoreCreateRecursiveMutex();
+        i2c_mutex[i] = I2C_MUTEX_CREATE();
     }
 
     i2c_port_obj_t* new_device_port = (i2c_port_obj_t *)malloc(sizeof(i2c_port_obj_t));
@@ -64,8 +25,9 @@ I2CDevice_t i2c_malloc_device(i2c_port_t i2c_num, gpio_num_t sda, gpio_num_t scl
     new_device_port->sda = sda;
     new_device_port->scl = scl;
     new_device_port->freq = freq;
-    new_device_port->port = i2c_num;
+    new_device_port->i2c_num = i2c_num;
     new_device_port->timeout = -1;
+    new_device_port->port = -1;
 
     i2c_device_t* device = (i2c_device_t *)malloc(sizeof(i2c_device_t));
     if (device == NULL) {
@@ -76,7 +38,7 @@ I2CDevice_t i2c_malloc_device(i2c_port_t i2c_num, gpio_num_t sda, gpio_num_t scl
     device->addr = device_addr;
     device->reg_bit = I2C_REG_8BIT;
 
-    log_i("New device malloc, scl: %d, sda: %d, freq: %d HZ",
+    log_i("New device malloc, scl: %d, sda: %d, freq: %"PRIx32" HZ",
         device->i2c_port->scl, device->i2c_port->sda, device->i2c_port->freq);
 
     return (I2CDevice_t)device;
@@ -86,165 +48,114 @@ void i2c_free_device(I2CDevice_t i2c_device) {
     if (i2c_device == NULL) {
         return ;
     }
-    free(((i2c_device_t *)i2c_device)->i2c_port);
+    i2c_device_t *device = (i2c_device_t *)i2c_device;
+    if (i2c_port_used[device->i2c_port->i2c_num] == device->i2c_port) {
+        memcpy(&i2c_port_temp, device->i2c_port, sizeof(i2c_port_obj_t));
+        i2c_port_used[device->i2c_port->i2c_num] = &i2c_port_temp;
+    }
+    free(device->i2c_port);
     free(i2c_device);
 }
 
-static void i2c_reset_deivce(I2CDevice_t i2c_device) {
-    i2c_device_t* device = (i2c_device_t *)i2c_device;
-    i2c_apply_bus(device);
-    i2c_driver_delete(device->i2c_port->port);
-    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[device->i2c_port->scl], PIN_FUNC_GPIO);
-    gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[device->i2c_port->sda], PIN_FUNC_GPIO);
-    i2c_port_used[device->i2c_port->port] = NULL;
-    i2c_free_bus(device);
-}
-
-BaseType_t i2c_take_port(i2c_port_t i2c_num, uint32_t timeout) {
-    if (i2c_mutex[i2c_num] == NULL) {
-        return pdFAIL;
-    }
-
-    return xSemaphoreTakeRecursive(i2c_mutex[i2c_num], timeout);
-}
-
-BaseType_t i2c_free_port(i2c_port_t i2c_num) {
-    if (i2c_mutex[i2c_num] == NULL) {
-        return pdFAIL;
-    }
-
-    return xSemaphoreGiveRecursive(i2c_mutex[i2c_num]);
-}
-
-esp_err_t i2c_apply_bus(I2CDevice_t i2c_device) {
+int i2c_apply_bus(I2CDevice_t i2c_device) {
     if (i2c_device == NULL) {
-        return ESP_FAIL;
+        return I2C_ERR_INVALID_ARG;
     }
 
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    xSemaphoreTakeRecursive(i2c_mutex[device->i2c_port->port], portMAX_DELAY);
-    i2c_port_obj_t* used_port = i2c_port_used[device->i2c_port->port];
-    
-    if (used_port == device->i2c_port) {
-        return ESP_OK;
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
+    i2c_port_obj_t* used_port = i2c_port_used[device->i2c_port->i2c_num];
+    i2c_port_obj_t* select_port = device->i2c_port;
+    int port_new = -1;
+    if (used_port == select_port) {
+        return I2C_OK;
     }
 
-    if ((used_port != NULL) && 
-        (device->i2c_port->sda == used_port->sda) && 
-        (device->i2c_port->scl == used_port->scl) && 
-        ((device->i2c_port->freq == used_port->freq))) {
-            i2c_port_used[device->i2c_port->port] = device->i2c_port;
-            return ESP_OK;    
+    if ((used_port != NULL) && (select_port->sda == used_port->sda) && (select_port->scl == used_port->scl) && 
+        ((select_port->freq == used_port->freq))) {
+            port_new = used_port->port;
+            goto exit;
     }
 
-    if (used_port != NULL) {
-        i2c_driver_delete(device->i2c_port->port);
-        if ((device->i2c_port->sda != used_port->sda) || (device->i2c_port->scl != used_port->scl)) {
-            gpio_reset_pin(used_port->sda);
-            gpio_reset_pin(used_port->scl);
-        }
+    // select device not init
+    if (used_port == NULL || used_port->port < 0) {
+        port_new = i2c_dev_init(select_port->i2c_num, select_port);
+        goto exit;
+    }
+    // Maybe this causes some bugggggggggggggggs
+    if (select_port->port < 0) {
+        select_port->port = used_port->port;
+    }
+    if (used_port->freq != select_port->freq) {
+        port_new = i2c_dev_update_freq(select_port->i2c_num, select_port);
+        goto exit;
     }
 
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = device->i2c_port->sda,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = device->i2c_port->scl,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = device->i2c_port->freq,
-    };
-
-    i2c_param_config(device->i2c_port->port, &conf);
-    i2c_driver_install(device->i2c_port->port, I2C_MODE_MASTER, 0, 0, 0);
-    if (device->i2c_port->timeout > 0) {
-        i2c_set_timeout(device->i2c_port->port, device->i2c_port->timeout);
+    if (used_port->sda != select_port->sda || used_port->scl != select_port->scl) {
+        port_new = i2c_dev_update_pins(select_port->i2c_num, select_port, used_port);
+        goto exit;
     }
-    i2c_port_used[device->i2c_port->port] = device->i2c_port;
-    log_i("I2C config update, scl: %d, sda: %d, freq: %d HZ",
-            device->i2c_port->scl, device->i2c_port->sda, device->i2c_port->freq);
-    return ESP_OK;
+
+exit:
+    if (port_new >= 0) {
+        select_port->port = port_new;
+    } else {
+        log_e("I2C config apply failed, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
+        return I2C_FAIL;
+    }
+    i2c_port_used[select_port->i2c_num] = select_port;
+    log_i("I2C config update, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
+    return I2C_OK;
 }
 
-esp_err_t i2c_free_bus(I2CDevice_t i2c_device) {
+int i2c_free_bus(I2CDevice_t i2c_device) {
     if (i2c_device == NULL) {
-        return ESP_ERR_INVALID_ARG;
+        return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    return (xSemaphoreGiveRecursive(i2c_mutex[device->i2c_port->port]) == pdTRUE) ? ESP_OK : ESP_FAIL;
+    return (I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]) == pdTRUE) ? I2C_OK : I2C_FAIL;
 }
 
-esp_err_t i2c_bus_scan_print(I2CDevice_t i2c_device) {
-    if (i2c_device == NULL) {
-        return ESP_ERR_INVALID_ARG;
+// adjust reg to 8 bit or 16 bit  
+static inline uint32_t i2c_adjust_reg(i2c_device_t* device, uint32_t reg_addr, uint8_t* len_out) {
+    // only support max 16bit reg now
+    uint32_t reg_addr_adjust = reg_addr & 0xffff;
+    uint8_t reg_len = 0;
+
+    if (device->reg_bit == I2C_NO_REG) {
+        reg_addr_adjust = 0xfff;
+        reg_len = 0;
+    } else if (device->reg_bit == I2C_REG_16BIT_LITTLE) {
+        reg_len = 2;
+    } else if(device->reg_bit == I2C_REG_16BIT_BIG) {
+        reg_addr_adjust = (reg_addr_adjust >> 8) | ((reg_addr_adjust & 0xff) << 8) ;
+        reg_len = 2;
+    } else {
+        reg_addr_adjust = reg_addr_adjust & 0xff;
+        reg_len = 1;
+    }
+    *len_out = reg_len;
+    return reg_addr_adjust;
+}
+
+int i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length) {
+    if (i2c_device == NULL || (length > 0 && data == NULL)) {
+        return I2C_FAIL;
     }
 
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    printf("I2C Scan: \r\n --> ");
-    for (uint8_t addr = 0x08; addr < 0x78; addr++) {
-        i2c_cmd_handle_t write_cmd = i2c_cmd_link_create();
-        i2c_master_start(write_cmd);
-        i2c_master_write_byte(write_cmd, (addr << 1) | I2C_MASTER_WRITE, 1);
-        i2c_master_stop(write_cmd);
-        esp_err_t err = ESP_FAIL;
+    uint8_t reg_len = 0;
+    int err = I2C_FAIL;
 
-        i2c_apply_bus(i2c_device);
-        err = i2c_master_cmd_begin(device->i2c_port->port, write_cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    reg_addr = i2c_adjust_reg(device, reg_addr, &reg_len);
+    if (i2c_apply_bus(i2c_device) != I2C_OK) {
         i2c_free_bus(i2c_device);
-
-        i2c_cmd_link_delete(write_cmd);
-
-        if (err == ESP_OK) {
-            printf("0x%02x, ", addr);
-        }
+        return I2C_FAIL;
     }
-    printf("\r\nI2C Scan end\r\n");
-    return ESP_OK;
-}
-
-esp_err_t i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length) {
-    if (i2c_device == NULL || (length > 0 && data == NULL)) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    i2c_device_t* device = (i2c_device_t *)i2c_device;
-
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    if (device->reg_bit != I2C_NO_REG) {
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (device->addr << 1) | I2C_MASTER_WRITE, 1);
-        if (device->reg_bit == I2C_REG_16BIT_LITTLE) {
-            i2c_master_write(cmd, (uint8_t *)&reg_addr, 2, 1);
-        } else if(device->reg_bit == I2C_REG_16BIT_BIG) {
-            uint16_t swap_data = __builtin_bswap16(reg_addr);
-            i2c_master_write(cmd, (uint8_t *)&swap_data, 2, 1);
-        } else {
-            i2c_master_write_byte(cmd, reg_addr, 1);
-        }
-    }
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (device->addr << 1) | I2C_MASTER_READ, 1);
-    if (length > 1) {
-        i2c_master_read(cmd, data, length - 1, I2C_MASTER_ACK);
-    }
-    if (length > 0) {
-        i2c_master_read_byte(cmd, &data[length-1], I2C_MASTER_NACK);
-    }
-    i2c_master_stop(cmd);
-    i2c_apply_bus(i2c_device);
-    
-    esp_err_t err = ESP_FAIL;
-
-    err = i2c_master_cmd_begin(device->i2c_port->port, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    err = i2c_dev_read_bytes(device->i2c_port->port, device->addr, reg_addr, reg_len, data, length);
     i2c_free_bus(i2c_device);
-    i2c_cmd_link_delete(cmd);
 
-    if (err != ESP_OK) {
-        // Timeout error, reset i2c device
-        if (err == 0x107) {
-            i2c_reset_deivce(i2c_device);
-        }
+    if (err != I2C_OK) {
         log_e("I2C Read Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
     } else {
         log_i("I2C Read Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
@@ -254,137 +165,63 @@ esp_err_t i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *dat
     return err;
 }
 
-esp_err_t i2c_read_bytes_no_stop(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length) {
-    if (i2c_device == NULL || (length > 0 && data == NULL)) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    i2c_device_t* device = (i2c_device_t *)i2c_device;
-
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    if (device->reg_bit != I2C_NO_REG) {
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (device->addr << 1) | I2C_MASTER_WRITE, 1);
-        if (device->reg_bit == I2C_REG_16BIT_LITTLE) {
-            i2c_master_write(cmd, (uint8_t *)&reg_addr, 2, 1);
-        } else if(device->reg_bit == I2C_REG_16BIT_BIG) {
-            uint16_t swap_data = __builtin_bswap16(reg_addr);
-            i2c_master_write(cmd, (uint8_t *)&swap_data, 2, 1);
-        } else {
-            i2c_master_write_byte(cmd, reg_addr, 1);
-        }
-    }
-
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (device->addr << 1) | I2C_MASTER_READ, 1);
-    if (length > 1) {
-        i2c_master_read(cmd, data, length - 1, I2C_MASTER_ACK);
-    }
-    if (length > 0) {
-        i2c_master_read_byte(cmd, &data[length-1], I2C_MASTER_NACK);
-    }
-    i2c_master_stop(cmd);
-    i2c_apply_bus(i2c_device);
-
-    esp_err_t err = ESP_FAIL;
-    
-    err = i2c_master_cmd_begin(device->i2c_port->port, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
-    i2c_free_bus(i2c_device);
-    i2c_cmd_link_delete(cmd);
-
-    if (err != ESP_OK) {
-        // Timeout error, reset i2c device
-        if (err == 0x107) {
-            i2c_reset_deivce(i2c_device);
-        }
-        log_e("I2C Read Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
-    } else {
-        log_i("I2C Read Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
-        log_reg(data, length);
-    }
-
-    return err;
-}
-
-esp_err_t i2c_read_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t* data) {
+int i2c_read_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t* data) {
     return i2c_read_bytes(i2c_device, reg_addr, data, 1);
 }
 
-esp_err_t i2c_read_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos) {
+int i2c_read_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos) {
     if (data == NULL) {
-        return ESP_FAIL;
+        return I2C_FAIL;
     }
 
-    esp_err_t err = ESP_FAIL;
+    int err = I2C_FAIL;
     uint8_t bit_data = 0x00;
     err = i2c_read_byte(i2c_device, reg_addr, &bit_data);
-    if (err != ESP_OK) {
+    if (err != I2C_OK) {
         return err;
     }
 
     *data = (bit_data >> bit_pos) & 0x01;
-    return ESP_OK; 
+    return I2C_OK; 
 }
 
-esp_err_t i2c_read_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos, uint8_t bit_length) {
+int i2c_read_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint8_t bit_pos, uint8_t bit_length) {
     if ((bit_pos + bit_length > 8) || data == NULL) {
-        return ESP_FAIL;
+        return I2C_FAIL;
     }
 
     uint8_t bit_data = 0x00;
-    esp_err_t err = ESP_FAIL;
+    int err = I2C_FAIL;
     err = i2c_read_byte(i2c_device, reg_addr, &bit_data);
-    if (err != ESP_OK) {
+    if (err != I2C_OK) {
         return err;
     }
 
     bit_data = bit_data >> bit_pos;
     bit_data &= (1 << bit_length) - 1;
     *data = bit_data;
-    return ESP_OK;
+    return I2C_OK;
 }
 
-esp_err_t i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length) {
+int i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uint16_t length) {
     if (i2c_device == NULL || (length > 0 && data == NULL)) {
-        return ESP_FAIL;
+        return I2C_FAIL;
     }
 
     i2c_device_t* device = (i2c_device_t *)i2c_device;
+    uint8_t reg_len = 0;
+    int err = I2C_FAIL;
+    
 
-    i2c_cmd_handle_t write_cmd = i2c_cmd_link_create();
-    i2c_master_start(write_cmd);
-    i2c_master_write_byte(write_cmd, (device->addr << 1) | I2C_MASTER_WRITE, 1);
-
-    if (device->reg_bit != I2C_NO_REG) {
-        if (device->reg_bit == I2C_REG_16BIT_LITTLE) {
-            i2c_master_write(write_cmd, (uint8_t *)&reg_addr, 2, 1);
-        } else if(device->reg_bit == I2C_REG_16BIT_BIG) {
-            uint16_t swap_data = __builtin_bswap16(reg_addr);
-            i2c_master_write(write_cmd, (uint8_t *)&swap_data, 2, 1);
-        } else {
-            i2c_master_write_byte(write_cmd, reg_addr, 1);
-        }
+    reg_addr = i2c_adjust_reg(device, reg_addr, &reg_len);
+    if (i2c_apply_bus(i2c_device) != I2C_OK) {
+        i2c_free_bus(i2c_device);
+        return I2C_FAIL;
     }
-
-    if (length > 0) {
-        i2c_master_write(write_cmd, data, length, 1);
-    }
-    i2c_master_stop(write_cmd);
-
-    esp_err_t err = ESP_FAIL;
-
-    i2c_apply_bus(i2c_device);
-    err = i2c_master_cmd_begin(device->i2c_port->port, write_cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    err = i2c_dev_write_bytes(device->i2c_port->port, device->addr, reg_addr, reg_len, data, length);
     i2c_free_bus(i2c_device);
 
-    i2c_cmd_link_delete(write_cmd);
-
-    if (err != ESP_OK) {
-        // Timeout error, reset i2c device
-        if (err == 0x107) {
-            i2c_reset_deivce(i2c_device);
-        }
+    if (err != I2C_OK) {
         log_e("I2C Write Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
     } else {
         log_i("I2C Write Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
@@ -396,15 +233,15 @@ esp_err_t i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *da
     return err;
 }
 
-esp_err_t i2c_write_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data) {
+int i2c_write_byte(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data) {
     return i2c_write_bytes(i2c_device, reg_addr, &data, 1);
 }
 
-esp_err_t i2c_write_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos) {
+int i2c_write_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos) {
     uint8_t value = 0x00;
-    esp_err_t err = ESP_FAIL;
+    int err = I2C_FAIL;
     err = i2c_read_byte(i2c_device, reg_addr, &value);
-    if (err != ESP_OK) {
+    if (err != I2C_OK) {
         return err;
     }
 
@@ -413,15 +250,15 @@ esp_err_t i2c_write_bit(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data,
     return i2c_write_byte(i2c_device, reg_addr, value);
 }
 
-esp_err_t i2c_write_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos, uint8_t bit_length) {
+int i2c_write_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data, uint8_t bit_pos, uint8_t bit_length) {
     if ((bit_pos + bit_length) > 8) {
-        return ESP_FAIL;
+        return I2C_FAIL;
     }
 
     uint8_t value = 0x00;
-    esp_err_t err = ESP_FAIL;
+    int err = I2C_FAIL;
     err = i2c_read_byte(i2c_device, reg_addr, &value);
-    if (err != ESP_OK) {
+    if (err != I2C_OK) {
         return err;
     }
 
@@ -432,71 +269,115 @@ esp_err_t i2c_write_bits(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t data
     return i2c_write_byte(i2c_device, reg_addr, value);
 }
 
-esp_err_t i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq) {
+int i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq) {
     if (i2c_device == NULL) {
-        return ESP_FAIL;
+        return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    xSemaphoreTakeRecursive(i2c_mutex[device->i2c_port->port], portMAX_DELAY);
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
     if (device->i2c_port->freq == freq) {
-        xSemaphoreGiveRecursive(i2c_mutex[device->i2c_port->port]);
-        return ESP_OK;
+        I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+        return I2C_OK;
     }
 
-    device->i2c_port->freq = freq;
-    if (i2c_port_used[device->i2c_port->port] == device->i2c_port) {
-        i2c_port_used[device->i2c_port->port] = NULL;
+    if (i2c_port_used[device->i2c_port->i2c_num] == device->i2c_port) {
+        memcpy(&i2c_port_temp, device->i2c_port, sizeof(i2c_port_obj_t));
+        i2c_port_used[device->i2c_port->i2c_num] = &i2c_port_temp;
     }
-    xSemaphoreGiveRecursive(i2c_mutex[device->i2c_port->port]);
-    return ESP_OK;
+    device->i2c_port->freq = freq;
+
+    I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+    return I2C_OK;
 }
 
-esp_err_t i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout) {
+int i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout) {
     if (i2c_device == NULL) {
-        return ESP_FAIL;
+        return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    xSemaphoreTakeRecursive(i2c_mutex[device->i2c_port->port], portMAX_DELAY);
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
     if (device->i2c_port->timeout == timeout) {
-        xSemaphoreGiveRecursive(i2c_mutex[device->i2c_port->port]);
-        return ESP_OK;
+        I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+        return I2C_OK;
     }
 
-    device->i2c_port->timeout = timeout;
-    if (i2c_port_used[device->i2c_port->port] == device->i2c_port) {
-        i2c_port_used[device->i2c_port->port] = NULL;
+    if (i2c_port_used[device->i2c_port->i2c_num] == device->i2c_port) {
+        memcpy(&i2c_port_temp, device->i2c_port, sizeof(i2c_port_obj_t));
+        i2c_port_used[device->i2c_port->i2c_num] = &i2c_port_temp;
     }
-    xSemaphoreGiveRecursive(i2c_mutex[device->i2c_port->port]);
-    return ESP_OK;
+    device->i2c_port->timeout = timeout;
+    I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+    return I2C_OK;
 }
 
-esp_err_t i2c_device_set_reg_bits(I2CDevice_t i2c_device, uint32_t reg_bit) {
+int i2c_device_set_reg_bits(I2CDevice_t i2c_device, uint32_t reg_bit) {
     if (i2c_device == NULL) {
-        return ESP_ERR_INVALID_ARG;
+        return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
     device->reg_bit = reg_bit;
-    return ESP_OK;
+    return I2C_OK;
 }
 
-esp_err_t i2c_device_valid(I2CDevice_t i2c_device) {
-    if (i2c_device == NULL ) {
-        return ESP_FAIL;
+int i2c_device_valid(I2CDevice_t i2c_device) {
+    i2c_device_t* device = (i2c_device_t *)i2c_device;
+    int err = I2C_FAIL;
+
+    if (i2c_apply_bus(i2c_device) != I2C_OK) {
+        i2c_free_bus(i2c_device);
+        return I2C_FAIL;
+    }
+    err = i2c_dev_write_bytes(device->i2c_port->port, device->addr, 0xff, 0, NULL, 0);
+    i2c_free_bus(i2c_device);
+
+    return err;
+}
+
+int i2c_bus_scan_print(I2CDevice_t i2c_device) {
+    if (i2c_device == NULL) {
+        return I2C_ERR_INVALID_ARG;
     }
 
     i2c_device_t* device = (i2c_device_t *)i2c_device;
+    int err = I2C_FAIL;
 
-    i2c_cmd_handle_t write_cmd = i2c_cmd_link_create();
-    i2c_master_start(write_cmd);
-    i2c_master_write_byte(write_cmd, (device->addr << 1) | I2C_MASTER_WRITE, 1);
-    i2c_master_stop(write_cmd);
-
-    esp_err_t err = ESP_FAIL;
-
-    i2c_apply_bus(i2c_device);
-    err = i2c_master_cmd_begin(device->i2c_port->port, write_cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    if (i2c_apply_bus(i2c_device) != I2C_OK) {
+        i2c_free_bus(i2c_device);
+        return I2C_FAIL;
+    }
+    printf("--- I2C Scan By Write Method --- \r\n ");
+    for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+        err = i2c_dev_write_bytes(device->i2c_port->port, addr, 0xff, 0, NULL, 0);
+        if (err == I2C_OK) {
+            printf("0x%02x, ", addr);
+        }
+    }
+    printf("\r\n--- I2C Scan End --- \r\n");
     i2c_free_bus(i2c_device);
+    return I2C_OK;
+}
 
-    i2c_cmd_link_delete(write_cmd);
-    return err;
+int i2c_bus_scan_print_by_read(I2CDevice_t i2c_device) {
+    if (i2c_device == NULL) {
+        return I2C_ERR_INVALID_ARG;
+    }
+
+    i2c_device_t* device = (i2c_device_t *)i2c_device;
+    uint8_t data = 0x00;
+    int err = I2C_FAIL;
+
+    if (i2c_apply_bus(i2c_device) != I2C_OK) {
+        i2c_free_bus(i2c_device);
+        return I2C_FAIL;
+    }
+    printf("--- I2C Scan By Read Method --- \r\n ");
+    for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+        err = i2c_dev_read_bytes(device->i2c_port->port, addr, 0xff, 0, &data, 1);
+        if (err == I2C_OK) {
+            printf("0x%02x, ", addr);
+        }
+    }
+    printf("\r\n--- I2C Scan End --- \r\n");
+    i2c_free_bus(i2c_device);
+    return I2C_OK;
 }
