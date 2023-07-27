@@ -10,6 +10,7 @@ qmsd-esp32-bsp 包含了屏幕驱动、触摸功能和 UI 框架等，方便用�
 
 - ZX2D10CE01S-4848
 - ZX2D10GE01R-V-4848
+- ZX2D80CECOF-2432
 - ZX3D50CE02S-USRC-4832
 - ZX3D95CE01S-AR-4848
 - ZX3D95CE01S-TR-4848
@@ -36,7 +37,7 @@ qmsd-esp32-bsp 包含了屏幕驱动、触摸功能和 UI 框架等，方便用�
 
 其它的一些库:
 
-- I2C 驱动库，进行了一些底层的封装，更实用些
+- I2C 驱动库，进行了一些底层的封装，更实用些，触摸有使用I2C时，建议使用此驱动，保证I2C读写线程安全，[exmaple](/components-ext/qmsd_sensor/aw9523)
 - Button 支持，带有ADC按键和普通按键，支持回调和阻塞读取状态
 - MP3 解码库，对libhelix-mp3的一个FreeRTOS数据流封装
 
@@ -46,11 +47,13 @@ qmsd-esp32-bsp 包含了屏幕驱动、触摸功能和 UI 框架等，方便用�
 ESP-IDF 支持
 
 -   [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)     
+-   [v5.0 release](https://github.com/espressif/esp-idf/tree/release/v5.0)     
+-   [v5.1 release](https://github.com/espressif/esp-idf/tree/release/v5.1)     
 
 
 使用前依赖：
 
-1. 安装ESP-IDF     **v4.4**    环境    [(教程)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)    ，测试可以成功编译ESP-IDF里的example/get-started
+1. 安装ESP-IDF**v4.4**  (**v5.0**，**v5.1**)环境 [(教程)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)    ，测试可以成功编译ESP-IDF里的example/get-started, 
 1. 选择芯片为ESP32-S3，再次成功编译example/get-started
 
 
@@ -82,6 +85,7 @@ include($ENV{QMSD_8MS_PATH}/component.cmake)
 ## 使用到的ESP32硬件外设
 
 - **LEDC**     -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
+- **I2C0**     -> 触摸使用，FREQ：400KHZ，需要触摸功能时,且需要使用触摸的I2C引脚时，驱动请使用 [i2c_bus](/components-third-party/i2c_bus)， 具体使用参照[aw9523](/components-ext/qmsd_sensor/aw9523)的读写示例
 
 
 # 快捷命令
@@ -135,9 +139,9 @@ idf.py release-components
 运行后项目目录的build下面生成一个component_release目录, 里面.a文件与cmake文件已替换好，是一个单独的工程
 
 # 其它参考资源
-
-- 启明智显低代码快速开发平台     [https://8ms.xyz/appshop](https://8ms.xyz/appshop)    
-- ESP-IDF 编程指南, 建议版本为ESP-IDF v4.4     [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html)   
+ 
+- ESP-IDF 编程指南, 建议版本为ESP-IDF v4.4.5     [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.5/esp32s3/api-reference/index.html)  
+- ESP32编程示例 (注意IDF的版本号) [https://github.com/espressif/esp-idf/tree/master/examples](https://github.com/espressif/esp-idf/tree/master/examples)
 - LVGL 编程指南     [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)        [ ](https://8ms.xyz/appshop)  
 
 

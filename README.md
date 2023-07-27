@@ -1,15 +1,15 @@
 
+# QMSD-ESP32-BSP
 
-# ESP32-8MS Introduction
+[中文版](./README_CN.md)  
 
-  [中文版](./README_CN.md)  
-
-ESP32-8MS includes the screen driver, touch and UI framework, which allows users to quickly develop the panlee development board.
+qmsd-esp32-bsp includes screen drivers, touch functionality, and UI framework, making it convenient for users to develop applications on the panlee development board.
 
 Supported development boards:
 
 - ZX2D10CE01S-4848
 - ZX2D10GE01R-V-4848
+- ZX2D80CECOF-2432
 - ZX3D50CE02S-USRC-4832
 - ZX3D95CE01S-AR-4848
 - ZX3D95CE01S-TR-4848
@@ -17,83 +17,80 @@ Supported development boards:
 - ZX4D30NE01S-UR-4827
 - ZX7D00CE01S-8048
 
-Supported UI drivers, default is LVGL-8.3.1
+Supported UI frameworks, default is LVGL-8.3.1:
 
 - LVGL-8.3.1
 - LVGL-7.11
 
+Supported sensors:
 
-Support sensors:
-
-- aht20 - Temperature and humidity sensor
-- sht20 - Temperature and humidity sensor
-- al01 - Remote control driver chip
+- aht20 - temperature and humidity sensor
+- sht20 - temperature and humidity sensor
+- al01 - remote control driver chip
 - aw9523 - IO expansion chip
 - encoder_ab - AB encoder
-- ltr303als01 - brightness sensor
+- ltr303als01 - ambient light sensor
 
+Other libraries:
 
-Some other libraries:
-
-- I2C driver library, some underlying packaging, more practical
-- Button support, with ADC button and normal button, support callback and blocking read state
+- I2C driver library, provides some low-level encapsulation for practical use. When using I2C for touch, it is recommended to use this driver to ensure I2C read/write thread safety. [Example](/components-ext/qmsd_sensor/aw9523)
+- Button support, with ADC buttons and regular buttons, supports callbacks and blocking read of button status
 - MP3 decoding library, a FreeRTOS data stream wrapper for libhelix-mp3
 
+# Usage Instructions
 
-# Usage Notes
+ESP-IDF support:
 
-ESP-IDF support
+- [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)
+- [v5.0 release](https://github.com/espressif/esp-idf/tree/release/v5.0)
+- [v5.1 release](https://github.com/espressif/esp-idf/tree/release/v5.1)
 
--   [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)     
+Prerequisites before usage:
 
-
-Pre-use dependencies:
-
-1. Install ESP-IDF v4.4 environment   [(tutorial)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html)  , and test the successful compilation of sample/get-started in ESP-IDF.
-1. Select the chip as ESP32-S3 and compile example/get-started again successfully.
-
-
-Steps to use：
-
-1. Go to example/get-start
-1. Load the ESP-IDF environment
-1. **idf.py load-board**     Load the target board configuration
-1. **idf.py build**     Compile
+1. Install ESP-IDF **v4.4**  (**v5.0**, **v5.1**)environment [(Tutorial)](https://docs.espressif.com/projects/esp-idf/zh_CN/release-v4.4/esp32s3/get-started/index.html) and verify successful compilation of the example/get-started within ESP-IDF.
+2. Select ESP32-S3 as the target chip and compile example/get-started again to ensure successful compilation.
 
 
-## Use qmsd-esp32-bsp as a component
+Here is the translated version:
 
-Method 1: Set the environment variable   **QMSD_8MS_PATH **  to point to the address of the SDK, add it to CMakeLists.txt
+1. Go to the "example/get-start" directory.
+2. Set up the ESP-IDF environment.
+3. Use the command "idf.py load-board" to load the configuration for your target development board.
+4. Compile the project using the command "idf.py build".
+
+## Using qmsd-esp32-bsp as a component
+
+Method 1: Set the environment variable **QMSD_8MS_PATH** to the address of the SDK, and add the following line to the CMakeLists.txt file:
 
 ```
 include($ENV{QMSD_8MS_PATH}/component.cmake)
 ```
 
-Method 2: Copy the SDK to your personal project, name it xxx, add it to CMakeLists.txt
+Method 2: Copy the SDK to your project and name it "xxx". Then, add the following line to the CMakeLists.txt file:
 
 ```
 set(ENV{QMSD_8MS_PATH} ${CMAKE_SOURCE_DIR}/xxx)
 include($ENV{QMSD_8MS_PATH}/component.cmake)
 ```
 
-> Reference: example/get-start/CMakeLists.txt
+> Refer to example/get-start/CMakeLists.txt for more information.
 
-# The ESP32 hardware peripherals used
+## ESP32 hardware peripherals used
 
-- **LEDC**     -> LEDC_TIMER_3，LEDC_LOW_SPEED_MODE，LEDC_CHANNEL_5，LEDC_TIMER_10_BIT
+- **LEDC**: LEDC_TIMER_3, LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_5, LEDC_TIMER_10_BIT
+- **I2C0**: Used for touch input with a frequency of 400KHz. If you need touch functionality and want to use the I2C pins for touch, please use the [i2c_bus](/components-third-party/i2c_bus) driver. Refer to the read/write example in [aw9523](/components-ext/qmsd_sensor/aw9523) for specific usage.
 
+# Quick commands
 
-# Shortcut Commands
+### Load board configuration
 
-### Load the development board configuration
-
-Run under the project
+Run the following command in the project directory:
 
 ```
 idf.py load-board
 ```
 
-The following options will appear, the board model will change dynamically based on sdk support
+You will see the following options, and the board models may vary based on the SDK support:
 
 ```
 --- Please select board to load sdkconfig ---
@@ -107,36 +104,34 @@ x): exit
 Select board [0 ~ 5]:
 ```
 
-Enter the target model and press enter, the script will create the sdkconfig.defaults file and configure sdkconfig to the target board
+Enter the number corresponding to your target board and press Enter. The script will create the sdkconfig.defaults file and configure the sdkconfig for the selected development board.
 
-### Package the firmware
+### Generate firmware
 
-After the project is successfully compiled, run:
+After a successful compilation of the project, run the following command:
 
 ```
 idf.py generate-firmware
 ```
 
-The script will find the bin files generated in the build folder, and then package them into a single file, generating     **firmware_xxx.bin**     in the run directory, xxx represents the offset address of the bin file burned
+The script will locate the bin file generated in the build folder and package it into a single firmware file named firmware_xxx.bin, where xxx represents the offset address for burning the bin file.
 
-### Release Project
+### Release project
 
-The script can quickly package the components that need to be packaged to extract the compiled     **.a**     file for release
+The script can quickly package the compiled .a files of the components for release.
 
-Rules to determine whether the project needs to be packaged or not: if there is CMakeLists.release in the project directory components, it will delete the .c file under the component, replace CMakeLists.release with cmake file, and extract the .a file from the project's build directory to the component.
+The rule for determining whether to package a component is as follows: If there is a CMakeLists.release file in the components directory of the project, the .c files under that component will be deleted, and the CMakeLists.release file will be replaced with a cmake file. The .a files will be extracted from the build directory of the project to the component directory.
 
-After the project has been successfully compiled, run:
+After a successful compilation of the project, run the following command:
 
 ```
 idf.py release-components
 ```
 
-After running the project, a component_release directory is created under the build directory, where the .a file and the cmake file are replaced, and it is a separate project.
+After running the command, a component_release directory will be generated under the build directory of the project. It contains the .a files and cmake files that have been replaced, forming a separate project.
 
 # Other reference resources
 
-- Panlee Low-Code Rapid Development Platform     [https://8ms.xyz/appshop](https://8ms.xyz/appshop)    
-- ESP-IDF Programming Guide, the recommended version is ESP-IDF v4.4     [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.3/esp32s3/api-reference/index.html)    
-- LVGL Programming Guide     [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/)        [ ](https://8ms.xyz/appshop)  
-
-
+- ESP-IDF Programming Guide, recommended version: ESP-IDF v4.4.5 [https://docs.espressif.com/projects/esp-idf/zh_CN](https://docs.espressif.com/projects/esp-idf/zh_CN/v4.4.5/esp32s3/api-reference/index.html)
+- ESP32 Programming Examples (Note the IDF version): [https://github.com/espressif/esp-idf/tree/master/examples](https://github.com/espressif/esp-idf/tree/master/examples)
+- LVGL Programming Guide [https://docs.lvgl.io/8.3/](https://docs.lvgl.io/8.3/) [ ](https://8ms.xyz/appshop)
