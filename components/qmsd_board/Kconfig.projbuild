@@ -50,7 +50,7 @@ menu "QMSD Hal"
             default 100
         config QMSD_BOARD_BACKLIGHT_DELAY
             int "Delay ms after startup to enable the backlight"
-            default 100
+            default 200
     endmenu
 
     config QMSD_BOARD_TOUCH_EN

@@ -31,7 +31,7 @@ void qmsd_board_init(qmsd_board_config_t* config) {
 
     qmsd_board_init_screen();
     qmsd_board_backlight_init(LCD_BL_PIN, 1, QMSD_SCREEN_BK_FREQ);
-    qmsd_board_backlight_set(100);
+    qmsd_board_backlight_set_delay(g_board_config.backlight.value, g_board_config.backlight.delay_ms);;
 
     if (g_board_config.touch.en) {
         qmsd_board_init_touch();
