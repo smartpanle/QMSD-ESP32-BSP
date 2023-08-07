@@ -27,7 +27,7 @@ I2CDevice_t i2c_malloc_device(int i2c_num, int8_t sda, int8_t scl, uint32_t freq
     new_device_port->freq = freq;
     new_device_port->i2c_num = i2c_num;
     new_device_port->timeout = -1;
-    new_device_port->port = -1;
+    new_device_port->port = I2C_PORT_NO_INIT;
 
     i2c_device_t* device = (i2c_device_t *)malloc(sizeof(i2c_device_t));
     if (device == NULL) {
@@ -38,7 +38,7 @@ I2CDevice_t i2c_malloc_device(int i2c_num, int8_t sda, int8_t scl, uint32_t freq
     device->addr = device_addr;
     device->reg_bit = I2C_REG_8BIT;
 
-    log_i("New device malloc, scl: %d, sda: %d, freq: %"PRIx32" HZ",
+    i2c_log_i("New device malloc, scl: %d, sda: %d, freq: %"PRIx32" HZ",
         device->i2c_port->scl, device->i2c_port->sda, device->i2c_port->freq);
 
     return (I2CDevice_t)device;
@@ -63,7 +63,7 @@ int i2c_apply_bus(I2CDevice_t i2c_device) {
     }
 
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num]);
     i2c_port_obj_t* used_port = i2c_port_used[device->i2c_port->i2c_num];
     i2c_port_obj_t* select_port = device->i2c_port;
     int port_new = -1;
@@ -83,7 +83,7 @@ int i2c_apply_bus(I2CDevice_t i2c_device) {
         goto exit;
     }
     // Maybe this causes some bugggggggggggggggs
-    if (select_port->port < 0) {
+    if (select_port->port == I2C_PORT_NO_INIT) {
         select_port->port = used_port->port;
     }
     if (used_port->freq != select_port->freq) {
@@ -97,14 +97,14 @@ int i2c_apply_bus(I2CDevice_t i2c_device) {
     }
 
 exit:
-    if (port_new >= 0) {
+    if (port_new != I2C_PORT_NO_INIT) {
         select_port->port = port_new;
     } else {
-        log_e("I2C config apply failed, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
+        i2c_log_e("I2C config apply failed, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
         return I2C_FAIL;
     }
     i2c_port_used[select_port->i2c_num] = select_port;
-    log_i("I2C config update, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
+    i2c_log_i("I2C config update, scl: %d, sda: %d, freq: %"PRIx32" HZ", select_port->scl, select_port->sda, select_port->freq);
     return I2C_OK;
 }
 
@@ -113,7 +113,8 @@ int i2c_free_bus(I2CDevice_t i2c_device) {
         return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    return (I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]) == pdTRUE) ? I2C_OK : I2C_FAIL;
+    I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+    return I2C_OK;
 }
 
 // adjust reg to 8 bit or 16 bit  
@@ -156,10 +157,10 @@ int i2c_read_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, uin
     i2c_free_bus(i2c_device);
 
     if (err != I2C_OK) {
-        log_e("I2C Read Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
+        i2c_log_e("I2C Read Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
     } else {
-        log_i("I2C Read Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
-        log_reg(data, length);
+        i2c_log_i("I2C Read Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
+        i2c_log_reg(data, length);
     }
 
     return err;
@@ -222,11 +223,11 @@ int i2c_write_bytes(I2CDevice_t i2c_device, uint32_t reg_addr, uint8_t *data, ui
     i2c_free_bus(i2c_device);
 
     if (err != I2C_OK) {
-        log_e("I2C Write Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
+        i2c_log_e("I2C Write Error, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16 ", Code: 0x%x", device->addr, reg_addr, length, err);
     } else {
-        log_i("I2C Write Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
+        i2c_log_i("I2C Write Success, addr: 0x%02x, reg: 0x%04" PRIx32 ", length: %" PRIu16, device->addr, reg_addr, length);
         if (length) {
-            log_reg(data, length);
+            i2c_log_reg(data, length);
         }
     }
 
@@ -274,7 +275,7 @@ int i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq) {
         return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num]);
     if (device->i2c_port->freq == freq) {
         I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
         return I2C_OK;
@@ -295,7 +296,7 @@ int i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout) {
         return I2C_ERR_INVALID_ARG;
     }
     i2c_device_t* device = (i2c_device_t *)i2c_device;
-    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num], portMAX_DELAY);
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num]);
     if (device->i2c_port->timeout == timeout) {
         I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
         return I2C_OK;

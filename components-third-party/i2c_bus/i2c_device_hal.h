@@ -29,34 +29,39 @@ typedef struct _i2c_device_t {
 // used for thread safe
 #define I2C_MUTEX_TYPE_T            SemaphoreHandle_t
 #define I2C_MUTEX_CREATE()          xSemaphoreCreateRecursiveMutex()
-#define I2C_MUTEX_TAKE(x, timeout)  xSemaphoreTakeRecursive(x, timeout)
+#define I2C_MUTEX_TAKE(x)           xSemaphoreTakeRecursive(x, portMAX_DELAY)
 #define I2C_MUTEX_GIVE(x)           xSemaphoreGiveRecursive(x)           
 
 #define I2C_TIMEOUT_MS (100)
 #define I2C_DEVICE_TAG "I2C-Dev"
-// #define I2C_NUM_MAX 3
+
+#ifndef I2C_NUM_MAX
+#define I2C_NUM_MAX 3
+#endif
 
 // #define CONFIG_I2C_DEVICE_DEBUG_INFO
 #define CONFIG_I2C_DEVICE_DEBUG_ERROR
 // #define CONFIG_I2C_DEVICE_DEBUG_REG
 
 #ifdef CONFIG_I2C_DEVICE_DEBUG_INFO
-#define log_i(format...) ESP_LOGI(I2C_DEVICE_TAG, format)
+#define i2c_log_i(format...) ESP_LOGI(I2C_DEVICE_TAG, format)
 #else
-#define log_i(format...)
+#define i2c_log_i(format...)
 #endif
 
 #ifdef CONFIG_I2C_DEVICE_DEBUG_ERROR
-#define log_e(format...) ESP_LOGE(I2C_DEVICE_TAG, format)
+#define i2c_log_e(format...) ESP_LOGE(I2C_DEVICE_TAG, format)
 #else
-#define log_e(format...)
+#define i2c_log_e(format...)
 #endif
 
 #ifdef CONFIG_I2C_DEVICE_DEBUG_REG
-#define log_reg(buffer, buffer_len) ESP_LOG_BUFFER_HEX(I2C_DEVICE_TAG, buffer, buffer_len)
+#define i2c_log_reg(buffer, buffer_len) ESP_LOG_BUFFER_HEX(I2C_DEVICE_TAG, buffer, buffer_len)
 #else
-#define log_reg(buffer, buffer_len)
+#define i2c_log_reg(buffer, buffer_len)
 #endif
+
+#define I2C_PORT_NO_INIT (-1)
 
 int i2c_dev_write_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, uint8_t reg_len, const uint8_t *data, uint16_t length);
 

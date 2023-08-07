@@ -68,7 +68,7 @@ int i2c_dev_deinit(int i2c_port) {
 // data: NULL or data
 // return: 
 int i2c_dev_write_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, uint8_t reg_len, const uint8_t *data, uint16_t length) {
-    if (i2c_port < 0 || (length > 0 && data == NULL)) {
+    if (i2c_port == I2C_PORT_NO_INIT || (length > 0 && data == NULL)) {
         return I2C_FAIL;
     }
 
@@ -92,7 +92,7 @@ int i2c_dev_write_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, ui
 }
 
 int i2c_dev_read_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, uint8_t reg_len, uint8_t *data, uint16_t length) {
-    if (i2c_port < 0 || (length > 0 && data == NULL)) {
+    if (i2c_port == I2C_PORT_NO_INIT || (length > 0 && data == NULL)) {
         return I2C_FAIL;
     }
 
