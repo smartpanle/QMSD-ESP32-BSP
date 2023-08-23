@@ -57,5 +57,3 @@ build/
 example/**/sdkconfig
 example/**/sdkconfig.old
 example/**/dependencies.lock
-
-*.bin
