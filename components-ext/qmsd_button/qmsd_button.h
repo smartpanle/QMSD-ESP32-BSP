@@ -36,6 +36,18 @@ typedef struct {
 	} update_task;
 } qmsd_button_config_t;
 
+#define QMSD_BUTTON_DEFAULT_CONFIG {\
+    .ticks_interval_ms = 10,\
+    .debounce_ticks = 2,\
+    .short_ticks = 200 / 10,\
+    .long_ticks = 1000 / 10,\
+    .update_task = {\
+        .en = 1,\
+        .core = 1,\
+        .priority = 1,\
+    }\
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif

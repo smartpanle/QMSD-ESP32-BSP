@@ -1,6 +1,6 @@
 set(requires driver)
 
-if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER_EQUAL "5.0")
+if("${IDF_VERSION_MAJOR}" VERSION_GREATER_EQUAL "5")
     list(APPEND requires esp_adc)
 else() 
     list(APPEND requires esp_adc_cal)
