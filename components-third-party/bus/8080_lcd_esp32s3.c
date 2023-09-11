@@ -265,12 +265,14 @@ static void lcd_set_pin(const i2s_lcd_config_t *config)
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[config->pin_num_wr], PIN_FUNC_GPIO);
     gpio_set_direction(config->pin_num_wr, GPIO_MODE_OUTPUT);
     gpio_set_pull_mode(config->pin_num_wr, GPIO_FLOATING);
+    gpio_pad_set_drv(config->pin_num_wr, 0);
     gpio_matrix_out(config->pin_num_wr, LCD_PCLK_IDX, false, false);
 
     for (int i = 0; i < config->data_width; i++) {
         gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[config->pin_data_num[i]], PIN_FUNC_GPIO);
         gpio_set_direction(config->pin_data_num[i], GPIO_MODE_OUTPUT);
         gpio_set_pull_mode(config->pin_data_num[i], GPIO_FLOATING);
+        gpio_pad_set_drv(config->pin_data_num[i], 0);
         gpio_matrix_out(config->pin_data_num[i], LCD_DATA_OUT0_IDX + i, false, false);
     }
 }
@@ -449,12 +451,14 @@ i2s_lcd_handle_t i2s_lcd_driver_init(const i2s_lcd_config_t *config)
         gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[config->pin_num_cs], PIN_FUNC_GPIO);
         gpio_pad_select_gpio(config->pin_num_cs);
         gpio_set_direction(config->pin_num_cs, GPIO_MODE_OUTPUT);
+        gpio_pad_set_drv(config->pin_num_cs, 0);
         gpio_set_level(config->pin_num_cs, 0);
     }
 
     gpio_hal_iomux_func_sel(GPIO_PIN_MUX_REG[config->pin_num_rs], PIN_FUNC_GPIO);
     gpio_pad_select_gpio(config->pin_num_rs);
     gpio_set_direction(config->pin_num_rs, GPIO_MODE_OUTPUT);
+    gpio_pad_set_drv(config->pin_num_rs, 0);
     gpio_set_level(config->pin_num_rs, LCD_DATA_LEV);
     i2s_lcd_drv->rs_io_num = config->pin_num_rs;
 
