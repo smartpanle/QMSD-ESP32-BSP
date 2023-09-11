@@ -4,6 +4,7 @@ from random import seed
 import sys
 import subprocess
 import time
+import shutil
 
 BOARD_RELATIVE_PATH = "components/qmsd_board/board"
 
@@ -31,8 +32,7 @@ def adjust_sdk2v2_version(index):
     return sdk_2v2_rename[sdk_2v2_list[index]]
 
 def get_qmsd_sdk_path():
-    dirname, filename = os.path.split(os.path.abspath(__file__))
-    return '/'.join(dirname.split('/')[:-1])
+     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def scan_board(path):
     chip_type = [i for i in os.listdir(path) if not i.startswith('.')]
@@ -55,7 +55,7 @@ def run():
 
     print(f"Current project path: {project_path}")
     print("--- Please select board to load sdkconfig ---")
-    board_dict = scan_board(get_qmsd_sdk_path() + '/' + BOARD_RELATIVE_PATH)
+    board_dict = scan_board(os.path.join(get_qmsd_sdk_path(), BOARD_RELATIVE_PATH))
     boards = list(board_dict.keys())
     boards.sort()
     if args.board_name:
@@ -114,9 +114,10 @@ def run():
         pass
 
     os.chdir(project_path)
-    subprocess.run(["idf.py", "fullclean"])
+    shutil.rmtree('build', ignore_errors=True)
+    # os.system("idf.py fullclean")
     time.sleep(0.5)
-    subprocess.run(["idf.py", "reconfigure"])
+    subprocess.run(["idf.py", "reconfigure"], shell=True)
     
     print("Finish ~_~")
 
