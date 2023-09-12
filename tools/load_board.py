@@ -40,7 +40,7 @@ def scan_board(path):
     for chip in chip_type:
         boards = [i for i in os.listdir(f'{path}/{chip}') if not i.startswith('.')]
         for i in boards:
-            board[i] = f'{path}/{chip}/{i}'
+            board[i] = {'path': f'{path}/{chip}/{i}', 'chip': chip}
     return board
 
 def run():
@@ -97,7 +97,7 @@ def run():
             except ValueError:
                 print("Select input error, pls retry")
     print(f"Select board: {boards[select]}")
-    src_path = f'{board_dict[boards[select]]}/sdkconfig.defaults'
+    src_path = '{}/sdkconfig.defaults'.format(board_dict[boards[select]]['path'])
     dst_path = f'{project_path}/sdkconfig.defaults'
     if not os.path.exists(src_path):
         print(f"Not found sdkconfig.defaults: {src_path}")
@@ -111,14 +111,16 @@ def run():
     try:
         os.rename(f'{project_path}/sdkconfig', f'{project_path}/sdkconfig.old')
     except OSError:
-        pass
+        print("why remove sdkconfig failed")
+    
+    with open(f'{project_path}/sdkconfig', 'w') as fout:
+        with open(f'{project_path}/sdkconfig.defaults') as fin:
+            fout.write(fin.read())
 
     os.chdir(project_path)
     shutil.rmtree('build', ignore_errors=True)
-    # os.system("idf.py fullclean")
     time.sleep(0.5)
-    subprocess.run(["idf.py", "reconfigure"], shell=True)
-    
+    subprocess.run("idf.py reconfigure", shell=True)
     print("Finish ~_~")
 
 if __name__ == "__main__":
