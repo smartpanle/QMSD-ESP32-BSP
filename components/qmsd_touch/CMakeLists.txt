@@ -1,9 +1,7 @@
 set(requires driver i2c_bus qmsd_utils)
 
 idf_component_register(
+	SRC_DIRS . ft5x06 gt2863 cst816t gt911 chsc6540 sp2010 cst328
 	INCLUDE_DIRS . ft5x06
     REQUIRES ${requires} 
 )
-
-add_prebuilt_library(lib${COMPONENT_NAME} lib/${IDF_TARGET}/lib${COMPONENT_NAME}.a REQUIRES ${requires})
-target_link_libraries(${COMPONENT_LIB} INTERFACE lib${COMPONENT_NAME})

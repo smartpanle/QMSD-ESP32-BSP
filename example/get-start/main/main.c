@@ -5,18 +5,21 @@
 #include "freertos/task.h"
 #include "qmsd_board.h"
 #include "qmsd_utils.h"
-
-#include "qmsd_ui_entry.h"
+#include "lvgl.h"
 
 #define TAG "QMSD-MAIN"
 
-void gui_user_init()
-{
-    qmsd_ui_entry();
+void gui_user_init() {
+    lv_obj_t* main_page = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(main_page, lv_color_make(0x00, 0x00, 0x00), 0);
+    lv_obj_t* label = lv_label_create(main_page);
+    lv_label_set_text_static(label, "Hello Smartpanle");
+    lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_center(label);
+    lv_scr_load(main_page);
 }
 
-void app_main(void)
-{   
+void app_main(void) {
     gpio_install_isr_service(ESP_INTR_FLAG_SHARED);
     qmsd_board_config_t config = QMSD_BOARD_DEFAULT_CONFIG;
     qmsd_board_init(&config);
