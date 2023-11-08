@@ -7,5 +7,5 @@ endif()
 idf_component_register(
     SRC_DIRS ${src_file_dir}
     INCLUDE_DIRS ${src_file_dir} 
-    REQUIRES qmsd_board
+    REQUIRES qmsd_board json
 )
