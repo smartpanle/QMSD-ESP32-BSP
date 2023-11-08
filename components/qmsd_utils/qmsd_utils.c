@@ -30,6 +30,26 @@ uint32_t qmsd_get_time_sec() {
     return (uint32_t)tv.tv_sec;
 }
 
+void qmsd_time_set_timezone_cst_8() {
+    setenv("TZ", "CST-8", 1);
+    tzset();
+}
+
+struct tm* qmsd_time_get_tm() {
+    time_t current_time;
+    current_time = time(NULL);
+    return localtime(&current_time);
+}
+
+void qmsd_time_set_time(time_t timestamp) {
+    struct timeval tv;
+
+    tv.tv_sec = timestamp;
+    tv.tv_usec = 0;
+
+    settimeofday(&tv, NULL);
+}
+
 static void esp_mem_print_task() {
     TaskStatus_t *pxTaskStatusArray = NULL;
     volatile UBaseType_t uxArraySize = 0;

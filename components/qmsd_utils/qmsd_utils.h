@@ -77,11 +77,16 @@ extern uint8_t _binary_##file_name##_end; \
 const uint8_t* _##file_name##_ptr = &_binary_##file_name##_start; \
 uint32_t _##file_name##_size = (uint32_t)&_binary_##file_name##_end - (uint32_t)&_binary_##file_name##_start
 
-// base <sys/time.h>
+// time -> base <sys/time.h>
 uint64_t qmsd_get_time_ms();
 
-// base <sys/time.h>
 uint32_t qmsd_get_time_sec();
+
+void qmsd_time_set_timezone_cst_8();
+
+struct tm* qmsd_time_get_tm();
+
+void qmsd_time_set_time(time_t timestamp);
 
 void qmsd_debug_task_print(uint32_t interval_time);
 
