@@ -24,8 +24,8 @@ def get_release_components(src_path):
     components = {}
     cmake_release_file = get_files(src_path, "CMakeLists.release")
     for file in cmake_release_file:
-        component_name = file.split("/")[-2]
-        components[component_name] = "/".join(file.split("/")[:-1])
+        component_name = os.path.basename(os.path.dirname(os.path.abspath(file)))
+        components[component_name] = os.path.dirname(os.path.abspath(file))
     return components
 
 def rm_files(path, filter):
