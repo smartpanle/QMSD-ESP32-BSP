@@ -291,6 +291,17 @@ int i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq) {
     return I2C_OK;
 }
 
+int i2c_device_change_addr(I2CDevice_t i2c_device, uint32_t addr) {
+    if (i2c_device == NULL) {
+        return I2C_ERR_INVALID_ARG;
+    }
+    i2c_device_t* device = (i2c_device_t *)i2c_device;
+    I2C_MUTEX_TAKE(i2c_mutex[device->i2c_port->i2c_num]);
+    device->addr = addr;
+    I2C_MUTEX_GIVE(i2c_mutex[device->i2c_port->i2c_num]);
+    return I2C_OK;
+}
+
 int i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout) {
     if (i2c_device == NULL) {
         return I2C_ERR_INVALID_ARG;

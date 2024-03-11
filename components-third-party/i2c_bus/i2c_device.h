@@ -54,6 +54,8 @@ int i2c_free_bus(I2CDevice_t i2c_device);
 
 int i2c_device_change_freq(I2CDevice_t i2c_device, uint32_t freq);
 
+int i2c_device_change_addr(I2CDevice_t i2c_device, uint32_t addr);
+
 int i2c_device_change_timeout(I2CDevice_t i2c_device, int32_t timeout);
 
 int i2c_device_set_reg_bits(I2CDevice_t i2c_device, uint32_t reg_bit);
