@@ -120,7 +120,8 @@ def run():
     os.chdir(project_path)
     shutil.rmtree('build', ignore_errors=True)
     time.sleep(0.5)
-    subprocess.run("idf.py reconfigure", shell=True)
+    subprocess.run(["idf.py", "reconfigure"], shell=False)
+    time.sleep(1)
     print("Finish ~_~")
 
 if __name__ == "__main__":
