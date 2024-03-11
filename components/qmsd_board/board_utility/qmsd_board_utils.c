@@ -50,10 +50,11 @@ void qmsd_board_backlight_set(float light) {
     ledc_update_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL);
 }
 
-static void backlight_timer_cb( TimerHandle_t pxTimer ) {
+static void backlight_timer_cb(TimerHandle_t pxTimer) {
     float light = *(float *)pvTimerGetTimerID(pxTimer);
     qmsd_board_backlight_set(light);
     xTimerStop(pxTimer, 0);
+    xTimerDelete(pxTimer, 0);
 }
 
 void qmsd_board_backlight_set_delay(float light, uint32_t delay_ms) {
@@ -62,7 +63,7 @@ void qmsd_board_backlight_set_delay(float light, uint32_t delay_ms) {
     if (delay_ms == 0) {
         qmsd_board_backlight_set(light_pos);
     } else {
-        TimerHandle_t _timer = xTimerCreate("blk", pdMS_TO_TICKS(delay_ms), true, (void *)&light_pos, backlight_timer_cb);
+        TimerHandle_t _timer = xTimerCreate("blk", pdMS_TO_TICKS(delay_ms), pdFALSE, (void *)&light_pos, backlight_timer_cb);
         xTimerStart(_timer, 0);
     }
 }
