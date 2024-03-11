@@ -30,6 +30,9 @@ extern "C" {
 
 void aw9523_init(uint8_t sda_pin, uint8_t scl_pin);
 
+// addr maybe: 0x5a, 0x5b, 0x5c, 0x5d
+void aw9523_set_addr(uint8_t addr);
+
 uint8_t aw9523_read_level(aw9523_port_t port);
 
 void aw9523_set_level(aw9523_port_t port, uint8_t value);

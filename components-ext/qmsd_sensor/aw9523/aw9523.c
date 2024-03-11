@@ -15,6 +15,14 @@ void aw9523_init(uint8_t sda_pin, uint8_t scl_pin) {
     aw9523_device = i2c_malloc_device(I2C_NUM_0, sda_pin, scl_pin, 400000, 0x5b);
 }
 
+void aw9523_set_addr(uint8_t addr) {
+    if (!aw9523_device) {
+        assert(0);
+        return ;
+    }
+    i2c_device_change_addr(aw9523_device, addr);
+}
+
 uint8_t aw9523_read_level(aw9523_port_t port) {
     uint8_t data = 0x00;
     i2c_read_byte(aw9523_device, (port == AW9523_PORT_0) ? 0x00 : 0x01, &data);
@@ -76,7 +84,7 @@ void aw9523_led_set_duty(aw9523_port_t port, uint8_t pin_num, uint8_t duty) {
 }
 
 void aw9523_leds_set_duty(aw9523_port_t port, uint8_t pin_num, uint8_t nums, uint8_t duty) {
-    AW9523_CHECK_NUM(pin_num + nums);
+    AW9523_CHECK_NUM(pin_num + nums - 1);
     uint8_t dutys[8] = {0};
     memset(dutys, duty, 8);
     uint8_t reg;
