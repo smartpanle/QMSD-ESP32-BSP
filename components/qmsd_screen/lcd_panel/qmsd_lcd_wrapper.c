@@ -3,10 +3,14 @@
 #include "screen_utility.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-
 #define TAG "LCD_WRAPPER"
 
 #define LCD_DEBUG_TE 0
+
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+#define gpio_pad_select_gpio esp_rom_gpio_pad_select_gpio
+#define portTICK_RATE_MS portTICK_PERIOD_MS
+#endif
 
 static SemaphoreHandle_t semaphore;
 void lcd_dirver_wrapper_deinit();

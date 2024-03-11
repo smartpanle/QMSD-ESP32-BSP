@@ -5,6 +5,7 @@
 #include "qmsd_utils.h"
 #include "screen_utility.h"
 #include "esp_log.h"
+#include "driver/i2c.h"
 
 #define TAG "QMSD_BOARD"
 

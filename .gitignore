@@ -54,6 +54,8 @@ build/
 
 .vscode/
 
+managed_components/
+
 example/**/sdkconfig
 example/**/sdkconfig.old
 example/**/dependencies.lock

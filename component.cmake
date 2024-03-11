@@ -1,4 +1,4 @@
-add_definitions(-DSDK_8MS_VERSION="v0.9.0")
+add_definitions(-DSDK_8MS_VERSION="v0.9.1")
 
 list(APPEND EXTRA_COMPONENT_DIRS 
     $ENV{QMSD_8MS_PATH}/components
