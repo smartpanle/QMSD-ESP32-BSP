@@ -106,6 +106,16 @@ Select board [0 ~ 5]:
 
 Enter the number corresponding to your target board and press Enter. The script will create the sdkconfig.defaults file and configure the sdkconfig for the selected development board.
 
+If `load-board` fails, you can follow these steps to resolve:
+
+1. Find the corresponding board under `components/qmsd_board/board` directory.
+2. Find the `sdkconfig.defaults` file in that board's directory.
+3. Copy the `sdkconfig.defaults` file to the project directory, replacing it if it already exists.
+4. Delete the `sdkconfig` file in the project directory.
+5. Execute the command: `idf.py reconfigure`.
+
+This way, you can manually load the configuration file, and there is no need to execute the `idf.py load-board` command again in the future.
+
 ### Generate firmware
 
 After a successful compilation of the project, run the following command:

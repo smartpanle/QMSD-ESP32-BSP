@@ -112,7 +112,17 @@ x): exit
 Select board [0 ~ 5]:
 ```
 
-输入目标型号，按下回车，脚本会创建sdkconfig.defaults文件，并配置sdkconfig到目标开发板
+输入目标型号，按下回车，脚本会创建sdkconfig.defaults文件，并配置sdkconfig到目标开发板。
+
+如果`load-board`失败，可以按以下步骤解决：
+
+1. 在`components/qmsd_board/board`目录下找到对应的板子。
+2. 在该板子的目录下找到`sdkconfig.defaults`文件。
+3. 将`sdkconfig.defaults`文件复制到工程目录下, 如果已经存在则进行替换。
+4. 删除工程目录下的`sdkconfig`文件。
+5. 执行命令：`idf.py reconfigure`。
+
+这样就可以手动载入配置文件，后续不需要再执行idf.py load-board命令
 
 ### 打包固件
 
