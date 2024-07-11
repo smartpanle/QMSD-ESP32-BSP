@@ -86,6 +86,7 @@ extern touch_panel_driver_t touch_gt911_driver;
 extern touch_panel_driver_t touch_chsc6540_driver;
 extern touch_panel_driver_t touch_sp2010_driver;
 extern touch_panel_driver_t touch_cst328_driver;
+extern touch_panel_driver_t touch_cst3240_driver;
 
 qmsd_err_t touch_init(touch_panel_driver_t* touch_panel, touch_panel_config_t* panel_config);
 

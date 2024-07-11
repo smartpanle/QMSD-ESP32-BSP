@@ -32,10 +32,11 @@ static qmsd_err_t cst328_read_point_data(touch_panel_points_t *point) {
     QMSD_PARAM_CHECK(point != NULL);
     uint8_t data[7] = {0x0};
     i2c_read_bytes(cst328_device, 0xD000, data, 7);
-    point->event = data[0] ? TOUCH_EVT_PRESS : TOUCH_EVT_RELEASE;
+    point->event = (data[0] & 0x04) ? TOUCH_EVT_PRESS : TOUCH_EVT_RELEASE;
     point->point_num = 1;
     point->curx[0] = (data[1] << 4) | ((data[3] >> 4 ) & 0x0F);
     point->cury[0] = (data[2] << 4) | (data[3] & 0x0F);
+    i2c_write_byte(cst328_device, 0xD000, 0xAB);
     return QMSD_ERR_OK;
 }
 
