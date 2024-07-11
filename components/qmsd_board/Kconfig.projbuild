@@ -24,6 +24,8 @@ menu "QMSD Hal"
             bool "ZX3D95CE01S_AR_4848"
         config ZX4D30NE01S_UR_4827
             bool "ZX4D30NE01S_UR_4827"
+        config ZX4D30CE08S_4827
+            bool "ZX4D30CE08S_4827"
         config ZX7D00CE01S_8048
             bool "ZX7D00CE01S_8048"
         config ZXXDXXSPI_DEMO
