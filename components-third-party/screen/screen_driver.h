@@ -332,6 +332,7 @@ extern scr_driver_t lcd_nt35510_default_driver;
 extern scr_driver_t lcd_rm68120_default_driver;
 extern scr_driver_t lcd_st7789_default_driver;
 extern scr_driver_t lcd_st7796_default_driver;
+extern scr_driver_t lcd_nv3041a_default_driver;
 
 #ifdef __cplusplus
 }
