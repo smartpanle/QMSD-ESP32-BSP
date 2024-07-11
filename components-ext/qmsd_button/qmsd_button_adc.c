@@ -6,7 +6,7 @@
 #define TAG "BTN_ADC"
 
 #define ADC_BUTTON_WIDTH        ADC_WIDTH_MAX-1
-#define ADC_BUTTON_ATTEN        ADC_ATTEN_DB_11
+#define ADC_BUTTON_ATTEN        3 // ADC_ATTEN_DB_12 or ADC_ATTEN_DB_11 (old sdk version)
 #define ADC_BUTTON_ADC_UNIT     ADC_UNIT_1
 #define ADC_DEFAULT_VREF        1100
 #define ADC_NUM_OF_SAMPLES      1
