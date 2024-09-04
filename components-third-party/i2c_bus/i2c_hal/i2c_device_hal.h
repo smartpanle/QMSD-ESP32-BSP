@@ -68,10 +68,10 @@ int i2c_dev_write_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, ui
 int i2c_dev_read_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, uint8_t reg_len, uint8_t *data, uint16_t length);
 
 // return port, if not update, return old port, if err, return -1
-int i2c_dev_update_pins(int i2c_port, i2c_port_obj_t* select_port, i2c_port_obj_t* old_port);
+int i2c_dev_update_pins(int i2c_num, i2c_port_obj_t* select_port, i2c_port_obj_t* old_port);
 
 // return port, if not update, return old port, if err, return -1
-int i2c_dev_update_freq(int i2c_port, i2c_port_obj_t* port_obj);
+int i2c_dev_update_freq(int i2c_num, i2c_port_obj_t* port_obj);
 
 // return port, if err, return -1
 int i2c_dev_init(int i2c_num, i2c_port_obj_t* port_obj);

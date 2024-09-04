@@ -78,7 +78,7 @@ int i2c_apply_bus(I2CDevice_t i2c_device) {
     }
 
     // select device not init
-    if (used_port == NULL || used_port->port < 0) {
+    if (used_port == NULL || used_port->port == I2C_PORT_NO_INIT) {
         port_new = i2c_dev_init(select_port->i2c_num, select_port);
         goto exit;
     }

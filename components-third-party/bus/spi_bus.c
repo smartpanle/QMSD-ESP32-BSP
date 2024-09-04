@@ -1,19 +1,12 @@
-// Copyright 2020-2021 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+/*
+ * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 #include <stdio.h>
-#include <string.h>
 #include <inttypes.h>
+#include <string.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -31,7 +24,7 @@ typedef struct {
     spi_device_handle_t handle;
     spi_bus_handle_t spi_bus;    /*!<spi bus handle */
     spi_device_interface_config_t conf;    /*!<spi device active configuration */
-    SemaphoreHandle_t mutex;    /* mutex to achive device thread-safe*/
+    SemaphoreHandle_t mutex;    /* mutex to achieve device thread-safe*/
 } _spi_device_t;
 
 static const char *TAG = "spi_bus";
@@ -43,29 +36,28 @@ static _spi_bus_t s_spi_bus[2];
         return (ret);                                                                   \
     }
 
-#define SPI_BUS_CHECK_GOTO(a, str, lable) if(!(a)) { \
+#define SPI_BUS_CHECK_GOTO(a, str, label) if(!(a)) { \
         ESP_LOGE(TAG,"%s:%d (%s):%s", __FILE__, __LINE__, __FUNCTION__, str); \
-        goto lable; \
+        goto label; \
     }
 
 #define SPI_DEVICE_MUTEX_TAKE(p_spi_dev, ret) if (!xSemaphoreTake((p_spi_dev)->mutex, ESP_SPI_MUTEX_TICKS_TO_WAIT)) { \
-        ESP_LOGE(TAG, "spi device(%" PRIi32 ") take mutex timeout, max wait = %d ticks", (int32_t)((p_spi_dev)->handle), ESP_SPI_MUTEX_TICKS_TO_WAIT); \
+        ESP_LOGE(TAG, "spi device(%"PRId32") take mutex timeout, max wait = %d ticks", (int32_t)((p_spi_dev)->handle), ESP_SPI_MUTEX_TICKS_TO_WAIT); \
         return (ret); \
     }
 
 #define SPI_DEVICE_MUTEX_GIVE(p_spi_dev, ret) if (!xSemaphoreGive((p_spi_dev)->mutex)) { \
-        ESP_LOGE(TAG, "spi device(%" PRIi32 ") give mutex failed", (int32_t)((p_spi_dev)->handle)); \
+        ESP_LOGE(TAG, "spi device(%"PRId32") give mutex failed", (int32_t)((p_spi_dev)->handle)); \
         return (ret); \
     }
 
 spi_bus_handle_t spi_bus_create(spi_host_device_t host_id, const spi_config_t *bus_conf)
 {
-#if SOC_SPI_PERIPH_NUM > 2
+#if (SOC_SPI_PERIPH_NUM == 3)
     SPI_BUS_CHECK(SPI1_HOST < host_id && host_id <= SPI3_HOST, "Invalid spi host_id", NULL);
-#else
+#elif (SOC_SPI_PERIPH_NUM == 2)
     SPI_BUS_CHECK(SPI1_HOST < host_id && host_id <= SPI2_HOST, "Invalid spi host_id", NULL);
 #endif
-
     uint8_t index = host_id - 1; //find related index
     spi_bus_config_t buscfg = {
         .miso_io_num = bus_conf->miso_io_num,
@@ -107,7 +99,7 @@ esp_err_t spi_bus_delete(spi_bus_handle_t *p_bus_handle)
     return ESP_OK;
 }
 
-spi_bus_device_handle_t spi_bus_device_create(spi_bus_device_handle_t bus_handle, const spi_device_config_t *device_conf)
+spi_bus_device_handle_t spi_bus_device_create(spi_bus_handle_t bus_handle, const spi_device_config_t *device_conf)
 {
     SPI_BUS_CHECK(NULL != bus_handle, "Pointer error", NULL);
     _spi_bus_t *spi_bus = (_spi_bus_t *)bus_handle;
@@ -154,7 +146,7 @@ esp_err_t spi_bus_device_delete(spi_bus_device_handle_t *p_dev_handle)
     return ESP_OK;
 }
 
-/* this function should lable with inline*/
+/* this function should label with inline*/
 inline static esp_err_t _spi_device_polling_transmit(spi_bus_device_handle_t dev_handle, spi_transaction_t *trans)
 {
     SPI_BUS_CHECK(NULL != dev_handle, "Pointer error", ESP_ERR_INVALID_ARG);

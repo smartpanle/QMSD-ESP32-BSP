@@ -1,21 +1,14 @@
-// Copyright 2015-2020 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include "sdkconfig.h"
 #if CONFIG_IDF_TARGET_ESP32S2
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -33,7 +26,6 @@
 #include "esp32s2/rom/lldesc.h"
 #include "soc/system_reg.h"
 #include "i2s_lcd_driver.h"
-
 
 static const char *TAG = "ESP32S2_I2S_LCD";
 
@@ -103,7 +95,7 @@ static void lcd_dma_set_int(i2s_lcd_obj_t *i2s_lcd_obj)
         i2s_lcd_obj->dma[x].empty = (uint32_t)&i2s_lcd_obj->dma[(x + 1) % i2s_lcd_obj->dma_node_cnt];
     }
     i2s_lcd_obj->dma[i2s_lcd_obj->dma_half_node_cnt - 1].empty = (uint32_t)NULL;
-    i2s_lcd_obj->dma[i2s_lcd_obj->dma_node_cnt - 1].empty = (uint32_t)NULL; 
+    i2s_lcd_obj->dma[i2s_lcd_obj->dma_node_cnt - 1].empty = (uint32_t)NULL;
 }
 
 static void lcd_dma_set_left(i2s_lcd_obj_t *i2s_lcd_obj, int pos, size_t len)
@@ -181,9 +173,9 @@ static void i2s_write_data(i2s_lcd_obj_t *i2s_lcd_obj, uint8_t *data, size_t len
         cnt = left - left % 2;
         if (cnt) {
             if (i2s_lcd_obj->swap_data) {
-                for (y = 0; y < cnt; y+=2) {
-                    out[y+1] = in[y+0];
-                    out[y+0] = in[y+1];
+                for (y = 0; y < cnt; y += 2) {
+                    out[y + 1] = in[y + 0];
+                    out[y + 0] = in[y + 1];
                 }
             } else {
                 memcpy(out, in, cnt);
@@ -228,7 +220,6 @@ static esp_err_t i2s_lcd_reg_config(i2s_dev_t *i2s_dev, uint16_t data_width, uin
     i2s_dev->conf.tx_msb_right = 1;
     i2s_dev->conf.tx_dma_equal = 1;
 
-    i2s_dev->conf1.tx_pcm_bypass = 1;
     i2s_dev->conf1.tx_stop_en = 1;
 
     i2s_dev->fifo_conf.val = 0;
@@ -236,7 +227,6 @@ static esp_err_t i2s_lcd_reg_config(i2s_dev_t *i2s_dev, uint16_t data_width, uin
     i2s_dev->fifo_conf.tx_fifo_mod_force_en = 1;
     i2s_dev->fifo_conf.tx_data_num = 32;
     i2s_dev->fifo_conf.tx_fifo_mod = 2;
-    i2s_dev->fifo_conf.tx_24msb_en = 0;
 
     i2s_dev->conf_chan.tx_chan_mod = 0;//remove
     i2s_dev->int_ena.out_eof = 1;
@@ -285,7 +275,7 @@ static esp_err_t lcd_dma_config(i2s_lcd_obj_t *i2s_lcd_obj, uint32_t max_dma_buf
     i2s_lcd_obj->dma_node_cnt = (i2s_lcd_obj->dma_buffer_size) / i2s_lcd_obj->dma_node_buffer_size; // Number of DMA nodes
     i2s_lcd_obj->dma_half_node_cnt = i2s_lcd_obj->dma_node_cnt / 2;
 
-    ESP_LOGI(TAG, "lcd_buffer_size: %d, lcd_dma_size: %d, lcd_dma_node_cnt: %d", i2s_lcd_obj->dma_buffer_size, i2s_lcd_obj->dma_node_buffer_size, i2s_lcd_obj->dma_node_cnt);
+    ESP_LOGI(TAG, "lcd_buffer_size: %"PRIu32", lcd_dma_size: %"PRIu32", lcd_dma_node_cnt: %"PRIu32"", i2s_lcd_obj->dma_buffer_size, i2s_lcd_obj->dma_node_buffer_size, i2s_lcd_obj->dma_node_cnt);
 
     i2s_lcd_obj->dma    = (lldesc_t *)heap_caps_malloc(i2s_lcd_obj->dma_node_cnt * sizeof(lldesc_t), MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
     i2s_lcd_obj->dma_buffer = (uint8_t *)heap_caps_malloc(i2s_lcd_obj->dma_buffer_size * sizeof(uint8_t), MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
@@ -396,8 +386,8 @@ i2s_lcd_handle_t i2s_lcd_driver_init(const i2s_lcd_config_t *config)
     I2S_CHECK(NULL != i2s_lcd_drv, "Error malloc handle of i2s lcd driver", NULL);
 
     esp_err_t ret = lcd_cam_init(i2s_lcd_drv, config);
-    if(ESP_OK != ret) {
-        ESP_LOGE(TAG,"%s:%d (%s):%s", __FILE__, __LINE__, __FUNCTION__, "i2s lcd driver initialize failed");
+    if (ESP_OK != ret) {
+        ESP_LOGE(TAG, "%s:%d (%s):%s", __FILE__, __LINE__, __FUNCTION__, "i2s lcd driver initialize failed");
         heap_caps_free(i2s_lcd_drv);
         return NULL;
     }
