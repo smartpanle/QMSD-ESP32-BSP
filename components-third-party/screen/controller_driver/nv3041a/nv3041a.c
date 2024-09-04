@@ -124,12 +124,21 @@ esp_err_t lcd_nv3041a_init(const scr_controller_config_t *lcd_conf)
     }
     ret = lcd_nv3041a_set_rotation(lcd_conf->rotate);
     LCD_CHECK(ESP_OK == ret, "Set rotate failed", ESP_FAIL);
+
     // write screen to black
-    uint16_t* color_clear = (uint16_t *)calloc(1, NV3041A_RESOLUTION_HOR * 2);
-    for (uint16_t y = 0; y < NV3041A_RESOLUTION_VER; y++) {
-        lcd_nv3041a_draw_bitmap(0, y, NV3041A_RESOLUTION_HOR, 1, color_clear);
+    if (lcd_conf->rotate & SCR_SWAP_XY) {
+        uint16_t* color_clear = (uint16_t *)calloc(1, NV3041A_RESOLUTION_VER * 2);
+        for (uint16_t y = 0; y < NV3041A_RESOLUTION_HOR; y++) {
+            lcd_nv3041a_draw_bitmap(0, y, NV3041A_RESOLUTION_VER, 1, color_clear);
+        }
+        free(color_clear);
+    } else {
+        uint16_t* color_clear = (uint16_t *)calloc(1, NV3041A_RESOLUTION_HOR * 2);
+        for (uint16_t y = 0; y < NV3041A_RESOLUTION_VER; y++) {
+            lcd_nv3041a_draw_bitmap(0, y, NV3041A_RESOLUTION_HOR, 1, color_clear);
+        }
+        free(color_clear);
     }
-    free(color_clear);
 
     return ESP_OK;
 }
