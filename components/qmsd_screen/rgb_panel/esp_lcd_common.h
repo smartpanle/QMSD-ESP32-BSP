@@ -18,6 +18,12 @@ extern "C" {
 
 #define LCD_PERIPH_CLOCK_PRE_SCALE (2) // This is the minimum divider that can be applied to LCD peripheral
 
+#if SOC_PERIPH_CLK_CTRL_SHARED
+#define LCD_CLOCK_SRC_ATOMIC() PERIPH_RCC_ATOMIC()
+#else
+#define LCD_CLOCK_SRC_ATOMIC()
+#endif
+
 #if SOC_LCDCAM_SUPPORTED
 
 typedef enum {

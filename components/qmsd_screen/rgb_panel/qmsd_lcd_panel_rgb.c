@@ -54,6 +54,14 @@
 #include "hal/gdma_ll.h"
 #include "rom/cache.h"
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)
+#define lcd_periph_signals lcd_periph_rgb_signals
+#endif
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#define lcd_ll_set_data_width(x, y) lcd_ll_set_dma_read_stride(x, y)
+#endif
+
 #if CONFIG_LCD_RGB_ISR_IRAM_SAFE
 #define LCD_RGB_INTR_ALLOC_FLAGS     (ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED)
 #else
@@ -260,10 +268,18 @@ esp_err_t qmsd_lcd_new_rgb_panel(const qmsd_lcd_rgb_panel_config_t *rgb_panel_co
     ESP_GOTO_ON_FALSE(panel_id >= 0, ESP_ERR_NOT_FOUND, err, TAG, "no free rgb panel slot");
     rgb_panel->panel_id = panel_id;
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     // enable APB to access LCD registers
+    PERIPH_RCC_ACQUIRE_ATOMIC(lcd_periph_signals.panels[panel_id].module, ref_count) {
+        if (ref_count == 0) {
+            lcd_ll_enable_bus_clock(panel_id, true);
+            lcd_ll_reset_register(panel_id);
+        }
+    }
+#else
     periph_module_enable(lcd_periph_signals.panels[panel_id].module);
     periph_module_reset(lcd_periph_signals.panels[panel_id].module);
-
+#endif
     // allocate frame buffers + bounce buffers
     ESP_GOTO_ON_ERROR(lcd_rgb_panel_alloc_frame_buffers(rgb_panel_config, rgb_panel), err, TAG, "alloc frame buffers failed");
 
@@ -765,11 +781,27 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
     panel->dma_restart_node.dw0.length -= restart_skip_bytes;
     panel->dma_restart_node.dw0.size -= restart_skip_bytes;
 #endif
-
     // alloc DMA channel and connect to LCD peripheral
     gdma_channel_alloc_config_t dma_chan_config = {
         .direction = GDMA_CHANNEL_DIRECTION_TX,
     };
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#if SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AHB
+    ESP_RETURN_ON_ERROR(gdma_new_ahb_channel(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
+#elif SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AXI
+    ESP_RETURN_ON_ERROR(gdma_new_axi_channel(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
+#endif
+    gdma_connect(panel->dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
+
+    // configure DMA transfer parameters
+    gdma_transfer_config_t trans_cfg = {
+        .max_data_burst_size = 64,
+        .access_ext_mem = true, // frame buffer was allocated from external memory
+    };
+    ESP_RETURN_ON_ERROR(gdma_config_transfer(panel->dma_chan, &trans_cfg), TAG, "config DMA transfer failed");
+#else
+    // alloc DMA channel and connect to LCD peripheral
     ESP_RETURN_ON_ERROR(gdma_new_channel(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
     gdma_connect(panel->dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
     gdma_transfer_ability_t ability = {
@@ -777,6 +809,7 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
         .sram_trans_align = panel->sram_trans_align,
     };
     gdma_set_transfer_ability(panel->dma_chan, &ability);
+#endif
 
     // we need to refill the bounce buffer in the DMA EOF interrupt, so only register the callback for bounce buffer mode
     if (panel->bb_size) {
@@ -929,7 +962,16 @@ static esp_err_t lcd_rgb_panel_select_clock_src(esp_rgb_panel_t *panel, user_rgb
 
 static uint32_t qmsd_lcd_hal_cal_pclk_freq(lcd_hal_context_t *hal, uint32_t src_freq_hz, uint32_t expect_pclk_freq_hz, int lcd_clk_flags)
 {
-    return lcd_hal_cal_pclk_freq(hal, src_freq_hz, expect_pclk_freq_hz, lcd_clk_flags);
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    hal_utils_clk_div_t lcd_clk_div = {};
+    uint32_t pclk_hz = lcd_hal_cal_pclk_freq(hal, src_freq_hz, expect_pclk_freq_hz, 0, &lcd_clk_div);
+    LCD_CLOCK_SRC_ATOMIC() {
+        lcd_ll_set_group_clock_coeff(hal->dev, lcd_clk_div.integer, lcd_clk_div.denominator, lcd_clk_div.numerator);
+    }
+#else
+    uint32_t pclk_hz = lcd_hal_cal_pclk_freq(hal, src_freq_hz, expect_pclk_freq_hz, lcd_clk_flags);
+#endif
+    return pclk_hz;
 }
 
 #else
