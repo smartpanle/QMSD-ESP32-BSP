@@ -45,6 +45,8 @@ ESP-IDF support:
 - [v4.4 release](https://github.com/espressif/esp-idf/tree/release/v4.4)
 - [v5.0 release](https://github.com/espressif/esp-idf/tree/release/v5.0)
 - [v5.1 release](https://github.com/espressif/esp-idf/tree/release/v5.1)
+- [v5.2 release](https://github.com/espressif/esp-idf/tree/release/v5.2)     
+- [v5.3 release](https://github.com/espressif/esp-idf/tree/release/v5.3)     
 
 Prerequisites before usage:
 

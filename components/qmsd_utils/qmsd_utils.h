@@ -5,6 +5,7 @@
 #include "esp_idf_version.h"
 #include "esp_log.h"
 #include "qmsd_err.h"
+#include "time.h"
 
 #ifdef __cplusplus
 extern "C" {
