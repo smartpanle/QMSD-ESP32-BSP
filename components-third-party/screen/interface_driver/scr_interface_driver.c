@@ -83,13 +83,13 @@ static esp_err_t _i2s_lcd_release(void *handle)
 #define ACK_CHECK_DIS               0                   /*!< I2C master will not check ack from slave */
 
 typedef struct {
-    i2c_bus_device_handle_t i2c_dev;
+    iic_bus_device_handle_t i2c_dev;
     scr_interface_driver_t interface_drv;
 } interface_i2c_handle_t;
 
 static esp_err_t i2c_lcd_driver_init(const scr_interface_i2c_config_t *cfg, interface_i2c_handle_t *out_interface_i2c)
 {
-    i2c_bus_device_handle_t i2c_dev = i2c_bus_device_create(cfg->i2c_bus, cfg->slave_addr, cfg->clk_speed);
+    iic_bus_device_handle_t i2c_dev = iic_bus_device_create(cfg->iic_bus, cfg->slave_addr, cfg->clk_speed);
     LCD_IFACE_CHECK(NULL != i2c_dev, "I2C bus initial failed", ESP_FAIL);
     out_interface_i2c->i2c_dev = i2c_dev;
     return ESP_OK;
@@ -97,18 +97,18 @@ static esp_err_t i2c_lcd_driver_init(const scr_interface_i2c_config_t *cfg, inte
 
 static esp_err_t i2c_lcd_driver_deinit(interface_i2c_handle_t *interface_i2c)
 {
-    i2c_bus_device_delete(&interface_i2c->i2c_dev);
+    iic_bus_device_delete(&interface_i2c->i2c_dev);
     return ESP_OK;
 }
 
-static esp_err_t i2c_lcd_write_byte(i2c_bus_device_handle_t i2c_dev, uint8_t ctrl, uint8_t data)
+static esp_err_t i2c_lcd_write_byte(iic_bus_device_handle_t i2c_dev, uint8_t ctrl, uint8_t data)
 {
     esp_err_t ret;
 
     uint8_t buffer[2];
     buffer[0] = ctrl;
     buffer[1] = data;
-    ret = i2c_bus_write_bytes(i2c_dev, NULL_I2C_MEM_ADDR, 2, buffer);
+    ret = iic_bus_write_bytes(i2c_dev, NULL_I2C_MEM_ADDR, 2, buffer);
     if (ESP_OK != ret) {
         ESP_LOGE(TAG, "i2c send failed [%s]", esp_err_to_name(ret));
         return ESP_FAIL;
@@ -135,7 +135,7 @@ static esp_err_t i2c_lcd_write(void *handle, const uint8_t *data, uint32_t lengt
 {
     interface_i2c_handle_t *interface_i2c = __containerof(handle, interface_i2c_handle_t, interface_drv);
     esp_err_t ret;
-    ret = i2c_bus_write_bytes(interface_i2c->i2c_dev, SSD1306_WRITE_DAT, length, (uint8_t *)data);
+    ret = iic_bus_write_bytes(interface_i2c->i2c_dev, SSD1306_WRITE_DAT, length, (uint8_t *)data);
     LCD_IFACE_CHECK(ESP_OK == ret, "i2C send failed", ESP_FAIL);
     return ESP_OK;
 }

@@ -63,11 +63,11 @@ TEST_CASE("Screen SSD1306 I2C test", "[screen][iot]")
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = 100000,
     };
-    i2c_bus_handle_t i2c_bus = i2c_bus_create(I2C_NUM_0, &i2c_conf);
-    TEST_ASSERT_NOT_NULL(i2c_bus);
+    iic_bus_handle_t iic_bus = iic_bus_create(I2C_NUM_0, &i2c_conf);
+    TEST_ASSERT_NOT_NULL(iic_bus);
 
     scr_interface_i2c_config_t iface_cfg = {
-        .i2c_bus = i2c_bus,
+        .iic_bus = iic_bus,
         .clk_speed = 100000,
         .slave_addr = 0x3C,
     };
@@ -101,7 +101,7 @@ TEST_CASE("Screen SSD1306 I2C test", "[screen][iot]")
 
     lcd.deinit();
     scr_interface_delete(iface_drv);
-    i2c_bus_delete(&i2c_bus);
+    iic_bus_delete(&iic_bus);
 }
 
 TEST_CASE("Screen SSD1307 I2C test", "[screen][iot]")
@@ -116,11 +116,11 @@ TEST_CASE("Screen SSD1307 I2C test", "[screen][iot]")
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = 100000,
     };
-    i2c_bus_handle_t i2c_bus = i2c_bus_create(I2C_NUM_0, &i2c_conf);
-    TEST_ASSERT_NOT_NULL(i2c_bus);
+    iic_bus_handle_t iic_bus = iic_bus_create(I2C_NUM_0, &i2c_conf);
+    TEST_ASSERT_NOT_NULL(iic_bus);
 
     scr_interface_i2c_config_t iface_cfg = {
-        .i2c_bus = i2c_bus,
+        .iic_bus = iic_bus,
         .clk_speed = 100000,
         .slave_addr = 0x3D,
     };
@@ -152,7 +152,7 @@ TEST_CASE("Screen SSD1307 I2C test", "[screen][iot]")
 
     lcd.deinit();
     scr_interface_delete(iface_drv);
-    i2c_bus_delete(&i2c_bus);
+    iic_bus_delete(&iic_bus);
 }
 
 TEST_CASE("Screen SSD1322 SPI test", "[screen][iot]")

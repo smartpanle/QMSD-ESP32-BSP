@@ -21,7 +21,7 @@ extern "C" {
 
 #include "esp_err.h"
 #include "i2s_lcd_driver.h"
-#include "i2c_bus.h"
+#include "iic_bus.h"
 #include "spi_bus.h"
 
 /**
@@ -41,7 +41,7 @@ typedef struct {
  * 
  */
 typedef struct {
-    i2c_bus_handle_t i2c_bus;    /*!< Handle of i2c bus */
+    iic_bus_handle_t iic_bus;    /*!< Handle of i2c bus */
     uint32_t clk_speed;          /*!< I2C clock frequency for master mode, (no higher than 1MHz for now) */
     uint16_t slave_addr;         /*!< I2C slave address */
 } scr_interface_i2c_config_t;
