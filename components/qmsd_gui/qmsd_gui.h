@@ -28,14 +28,16 @@ typedef struct  {
 
     struct {
         uint8_t en: 1;
-        uint8_t priority: 7;
+        uint8_t task_in_psram: 1;
+        uint8_t priority: 6;
         int8_t core;
         uint16_t stack_size;
     } refresh_task;
 
     struct {
         uint8_t en: 1;
-        uint8_t priority: 7;
+        uint8_t task_in_psram: 1;
+        uint8_t priority: 6;
         int8_t core;
         uint16_t stack_size;
     } update_task;

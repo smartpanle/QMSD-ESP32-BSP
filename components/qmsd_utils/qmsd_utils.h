@@ -1,6 +1,8 @@
 #pragma once
 
 #include "stdint.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "esp_idf_version.h"
 #include "esp_log.h"
@@ -100,6 +102,10 @@ uint16_t crc16tablefast_muti(uint8_t *data, uint32_t len, uint8_t *data1, uint32
 void* qmsd_malloc(size_t size);
 
 void qmsd_free(void* p);
+
+// Note: If stack_in_ext is true, deleting tasks will cause memory leaks, so it can only be used for threads that never end !!!!
+esp_err_t qmsd_thread_create(TaskFunction_t main_func, const char* const name, const uint32_t stack, void* const arg,
+                             UBaseType_t prio, TaskHandle_t* const p_handle, const BaseType_t core_id, uint8_t stack_in_ext);
 
 #ifdef __cplusplus
 }

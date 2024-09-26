@@ -80,12 +80,14 @@ extern "C" {
         .buffer_size = CONFIG_QMSD_GUI_BUFFER_SIZE, \
         .update_task = { \
             .en = CONFIG_QMSD_GUI_UPDATE_THREAD_EN, \
+            .task_in_psram = 0, \
             .priority = CONFIG_QMSD_GUI_UPDATE_THREAD_PRIORITY, \
             .core = CONFIG_QMSD_GUI_UPDATE_THREAD_CORE, \
             .stack_size = CONFIG_QMSD_GUI_UPDATE_THREAD_STACK_SIZE, \
         }, \
         .refresh_task = { \
             .en = CONFIG_QMSD_GUI_REFRESH_THREAD_EN, \
+            .task_in_psram = 0, \
             .priority = CONFIG_QMSD_GUI_REFRESH_THREAD_PRIORITY, \
             .core = CONFIG_QMSD_GUI_REFRESH_THREAD_CORE, \
             .stack_size = CONFIG_QMSD_GUI_REFRESH_THREAD_STACK_SIZE, \

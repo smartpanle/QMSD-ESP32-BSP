@@ -138,6 +138,7 @@ void qmsd_board_init_gui() {
         // refresh task is for speeding up gui without dma flushing
         .refresh_task = {
             .en = g_board_config.gui.refresh_task.en,
+            .task_in_psram = g_board_config.gui.refresh_task.task_in_psram,
             .core = g_board_config.gui.refresh_task.core,
             .priority = g_board_config.gui.refresh_task.priority,
             .stack_size = g_board_config.gui.refresh_task.stack_size,
@@ -146,6 +147,7 @@ void qmsd_board_init_gui() {
         // gui update task
         .update_task = {
             .en = g_board_config.gui.update_task.en,
+            .task_in_psram = g_board_config.gui.update_task.task_in_psram,
             .core = g_board_config.gui.update_task.core,
             .priority = g_board_config.gui.update_task.priority,
             .stack_size = g_board_config.gui.update_task.stack_size,

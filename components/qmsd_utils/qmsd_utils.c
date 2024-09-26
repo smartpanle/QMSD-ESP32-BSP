@@ -6,7 +6,6 @@
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
-
 #define TAG "qmsd_utils"
 #define REF_TIME        1577808000 /* 2020-01-01 00:00:00 */
 
@@ -141,4 +140,36 @@ void qmsd_free(void* p)
     free(p);
     //__malloc_cont--;
     //printf("free: %d\n", __malloc_cont);
+}
+
+esp_err_t qmsd_thread_create(TaskFunction_t main_func, const char* const name, const uint32_t stack_size, void* const arg,
+                             UBaseType_t prio, TaskHandle_t* const p_handle, const BaseType_t core_id, uint8_t stack_in_ext) {
+    if (stack_in_ext) {
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 2, 0)
+        assert(false && "thread in psarm only support idf version >= 5.2.0 !");
+#else
+#if (configSUPPORT_STATIC_ALLOCATION == 1 && CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY == 1)
+        if (xTaskCreatePinnedToCoreWithCaps(main_func, name, stack_size, arg, prio, p_handle, core_id, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM) != pdPASS) {
+            ESP_LOGE(TAG, "Error creating task %s", name);
+            goto qmsd_thread_create_error;
+        } else {
+            ESP_LOGI(TAG, "The %s task allocate stack on external memory", name);
+        }
+#else
+        ESP_LOGE(TAG, "The %s task allocate stack on external memory failed, please enable CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY", name);
+        return ESP_FAIL;
+#endif
+#endif
+    } else {
+        if (xTaskCreatePinnedToCore(main_func, name, stack_size, arg, prio, p_handle, core_id) != pdPASS) {
+            ESP_LOGE(TAG, "Error creating task %s", name);
+            goto qmsd_thread_create_error;
+        } else {
+            ESP_LOGI(TAG, "The %s task allocate stack on internal memory", name);
+        }
+    }
+    return ESP_OK;
+
+qmsd_thread_create_error:
+    return ESP_FAIL;
 }

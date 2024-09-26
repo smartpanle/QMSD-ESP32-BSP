@@ -88,6 +88,7 @@ void aw9523_leds_set_duty(aw9523_port_t port, uint8_t pin_num, uint8_t nums, uin
     uint8_t dutys[8] = {0};
     memset(dutys, duty, 8);
     uint8_t reg;
+
     if (port == AW9523_PORT_0) {
         reg = 0x24 + pin_num;
         i2c_write_bytes(aw9523_device, reg, dutys, nums);

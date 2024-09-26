@@ -21,7 +21,8 @@ enum {
 
 typedef struct {
     uint8_t en: 1;
-    uint8_t priority: 7;                   // Freertos task priority
+    uint8_t task_in_psram: 1;              // need enable psram for task stack 
+    uint8_t priority: 6;                   // Freertos task priority
     int8_t core;
     uint16_t stack_size;
 } qmsd_task_config_t;
