@@ -11,21 +11,23 @@ import time
 
 esp32_cmake = R"""set(ZX_UI_PATH "zx_ui")
 set(ZX_LOGIC_PATH "user_logic")
+set(requires ui_engine)
 
 file(GLOB_RECURSE ZX_UI_SOURCES ${ZX_UI_PATH}/*.c)
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${ZX_LOGIC_PATH})
-    file(GLOB_RECURSE ZX_LOGIC_SOURCES ${ZX_LOGIC_PATH}/*.c)
+if(NOT DEFINED ZX_USER_LOGIC_BY_USER OR ZX_USER_LOGIC_BY_USER EQUAL 0)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${ZX_LOGIC_PATH})
+        file(GLOB_RECURSE ZX_LOGIC_SOURCES ${ZX_LOGIC_PATH}/*.c)
+    endif()
 else()
     set(ZX_LOGIC_SOURCES "")
     set(ZX_LOGIC_PATH "")
 endif()
 
-set(requires ui_engine)
 
 idf_component_register(
-    SRCS ${ZX_UI_SOURCES}  ${ZX_LOGIC_SOURCES}
-    INCLUDE_DIRS .  ${ZX_UI_PATH} ${ZX_LOGIC_PATH}
+    SRCS ${ZX_UI_SOURCES} ${ZX_LOGIC_SOURCES}
+    INCLUDE_DIRS . ${ZX_UI_PATH} ${ZX_LOGIC_PATH}
     REQUIRES ${requires}
 )
 """
@@ -72,6 +74,13 @@ def load_ui_code(project_path, code, server_url=None):
 
 
 def load_ui_logic(project_path, code, server_url=None):
+    extract_folder = os.path.join(project_path, "components", "zx_ui_lvgl")
+    folder_true = os.path.join(extract_folder, "user_logic")
+
+    if os.path.exists( folder_true):
+        print(f"aleady exist {folder_true} folder, skip download")
+        return 
+
     if not server_url:
         server_url = "8ms.xyz"
     url = f"http://{server_url}/admin/uidproject/getSourceUserLogicCodeByToken/{code}"
@@ -96,13 +105,6 @@ def load_ui_logic(project_path, code, server_url=None):
         f.write(response.content)
 
     # 解压缩到指定目录
-    extract_folder = os.path.join(project_path, "components", "zx_ui_lvgl")
-    folder_true = os.path.join(extract_folder, "user_logic")
-
-    if os.path.exists( folder_true):
-        print(f"aleady exist {folder_true} folder, skip download")
-        return 
-
     os.makedirs(extract_folder, exist_ok=True)
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(extract_folder)
@@ -127,9 +129,6 @@ if __name__ == "__main__":
         args.url = None
     load_ui_code(args.project_path, args.share_code, args.url)
     load_ui_logic(args.project_path, args.share_code, args.url)
-    
-    time.sleep(0.5)
-    print("load new file need idf.py reconfigure")
+    print('If there is a new screen file, you need to execute "idf.py reconfigure"')
     os.chdir(args.project_path)
-    subprocess.run(["idf.py", "reconfigure"], shell=False)
 
