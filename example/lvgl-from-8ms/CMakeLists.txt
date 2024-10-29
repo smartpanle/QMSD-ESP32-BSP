@@ -3,7 +3,6 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(SHARE_CODE_8MS "_kjBxAkdXRywS4cCmRFDFQ")
-set(URL_8MS "192.168.31.234:9191")
 set(ZX_USER_LOGIC_BY_USER 1)
 
 # In a user project, you can move the This SDK to the same project and rename it to 'qmsd_esp32_sdk'
