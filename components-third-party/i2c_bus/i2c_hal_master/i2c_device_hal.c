@@ -108,3 +108,7 @@ int i2c_dev_read_bytes(int i2c_port, uint8_t device_addr, uint32_t reg_addr, uin
 
     return i2c_master_transmit_receive(dev, (uint8_t *)&reg_addr, reg_len, data, length, I2C_TIMEOUT_MS) == ESP_OK ? I2C_OK : I2C_FAIL;
 }
+
+i2c_master_bus_handle_t i2c_dev_get_bus_handle(int i2c_num) {
+    return g_bus_handle[i2c_num];
+}

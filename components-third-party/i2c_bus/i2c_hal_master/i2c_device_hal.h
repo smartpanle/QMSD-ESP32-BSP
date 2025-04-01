@@ -77,3 +77,5 @@ int i2c_dev_update_freq(int i2c_num, i2c_port_obj_t* port_obj);
 int i2c_dev_init(int i2c_num, i2c_port_obj_t* port_obj);
 
 int i2c_dev_deinit(int i2c_port);
+
+i2c_master_bus_handle_t i2c_dev_get_bus_handle(int i2c_num);
