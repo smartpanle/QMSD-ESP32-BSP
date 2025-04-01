@@ -11,5 +11,6 @@ list(APPEND EXTRA_COMPONENT_DIRS
 if(EXISTS $ENV{QMSD_8MS_PATH}/components-internal)
     list(APPEND EXTRA_COMPONENT_DIRS 
         $ENV{QMSD_8MS_PATH}/components-internal
+        $ENV{QMSD_8MS_PATH}/components-internal/qmsd_sensor_internal
     )
 endif()

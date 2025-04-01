@@ -1,6 +1,13 @@
-#include "driver/adc.h"
+#include <inttypes.h>
+#include "esp_system.h"
+
+#include "esp_system.h"
 #include "esp_log.h"
+#include "soc/soc_caps.h"
+#include "driver/adc.h"
+
 #include "esp_adc_cal.h"
+
 #include "qmsd_button.h"
 
 #define TAG "BTN_ADC"

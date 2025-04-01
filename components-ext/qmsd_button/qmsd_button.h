@@ -33,6 +33,7 @@ typedef struct {
 		uint8_t en: 1;
 		uint8_t priority: 7;
 		int8_t core;
+        uint32_t stack;
 	} update_task;
 } qmsd_button_config_t;
 
@@ -45,6 +46,7 @@ typedef struct {
         .en = 1,\
         .core = 1,\
         .priority = 1,\
+        .stack = 4 * 1024\
     }\
 }
 
@@ -77,6 +79,8 @@ void qmsd_button_stop(btn_handle_t handle);
 void qmsd_button_update(void);
 
 void qmsd_button_reset_event(btn_handle_t btn_handle);
+
+bool qmsd_button_in_event(btn_handle_t btn_handle);
 
 bool qmsd_button_wait_event(btn_handle_t btn_handle, press_event_t event, uint32_t ticks_ms);
 

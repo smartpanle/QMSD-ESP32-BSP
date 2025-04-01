@@ -1,4 +1,3 @@
-from ast import arg
 import os
 import re
 import argparse
@@ -9,8 +8,6 @@ src_path = ""
 def cover_to_firmware(cover_list, dst_path=None):
     # Start at 0x0
     cur_offset = 0x0
-    # Start as firmare first addr
-    # cur_offset = cover_list[0][0]
     if dst_path:
         dst_file = f'{dst_path}/firmware_{hex(cur_offset)}.bin'
     else:
@@ -31,16 +28,17 @@ def generate(build_path, dst_path=None):
     with open(f"{build_path}/flash_args") as fin:
         firmware_info = fin.read()
 
-    firmware_info = re.findall(r'0x\w+ .*.bin', firmware_info)
-    bin_file = []
+    # 修改正则表达式以匹配所有文件类型
+    firmware_info = re.findall(r'0x\w+ .*\.\w+', firmware_info)
+    file_list = []
     for i in firmware_info:
         data = i.split(" ")
         data[0] = int(data[0][2:], base=16)
         data[1] = f'{build_path}/{data[1]}'
-        bin_file.append(data)
-    bin_file.sort(key = lambda x: x[0])
+        file_list.append(data)
+    file_list.sort(key=lambda x: x[0])
 
-    return cover_to_firmware(bin_file, dst_path)
+    return cover_to_firmware(file_list, dst_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='QMSD generate firmware')

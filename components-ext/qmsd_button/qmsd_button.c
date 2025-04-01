@@ -34,7 +34,10 @@ void qmsd_button_init(qmsd_button_config_t* config) {
 	g_button_config = (qmsd_button_config_t *)calloc(1, sizeof(qmsd_button_config_t));
 	memcpy(g_button_config, config, sizeof(qmsd_button_config_t));
 	if (g_button_config->update_task.en) {
-        xTaskCreatePinnedToCore(qmsd_button_update_task, "btn-update", 4 * 1024, NULL, g_button_config->update_task.priority, NULL, g_button_config->update_task.core);
+		if (g_button_config->update_task.stack == 0) {
+			g_button_config->update_task.stack = 4 * 1024;
+		}
+        xTaskCreatePinnedToCore(qmsd_button_update_task, "btn-update", g_button_config->update_task.stack, NULL, g_button_config->update_task.priority, NULL, g_button_config->update_task.core);
     }
 }
 
@@ -238,6 +241,13 @@ bool qmsd_button_wait_event(btn_handle_t btn_handle, press_event_t event, uint32
 	EventBits_t wait_bits = 1 << event;
 
 	return (xEventGroupWaitBits(handle->event_group, wait_bits, true, false, pdMS_TO_TICKS(ticks_ms)) & wait_bits) > 0x00;
+}
+
+bool qmsd_button_in_event(btn_handle_t btn_handle) {
+	if (btn_handle == NULL) {
+		return false;
+	}
+	return xEventGroupGetBits(((btn_data_t*)btn_handle)->event_group) > 0;
 }
 
 static void qmsd_button_update_task(void *arg)
