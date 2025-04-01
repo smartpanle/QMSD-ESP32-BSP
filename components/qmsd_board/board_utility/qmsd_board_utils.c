@@ -5,6 +5,7 @@
 #include "qmsd_board_utils.h"
 
 static int16_t g_active_level = -1;
+static float light_duty_now = -1;
 
 void qmsd_board_backlight_init(int16_t blk_pin, uint8_t active_level, uint32_t pwm_freq) {
     if (blk_pin < 0) {
@@ -46,6 +47,10 @@ void qmsd_board_backlight_set(float light) {
         light = 100 - light;
     }
     uint16_t duty = 1024.0 / 100.0 * light;
+    if (duty == light_duty_now) {
+        return ;
+    }
+    light_duty_now = duty;
     ledc_set_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL, duty);
     ledc_update_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL);
 }
@@ -66,4 +71,26 @@ void qmsd_board_backlight_set_delay(float light, uint32_t delay_ms) {
         TimerHandle_t _timer = xTimerCreate("blk", pdMS_TO_TICKS(delay_ms), pdFALSE, (void *)&light_pos, backlight_timer_cb);
         xTimerStart(_timer, 0);
     }
+}
+
+void qmsd_board_backlight_fade_with_time(float light, uint32_t max_fade_time_ms, uint8_t wait_done) {
+    static uint8_t fade_init = 0;
+    if (fade_init == 0) {
+        ledc_fade_func_install(ESP_INTR_FLAG_SHARED);
+        fade_init = 1;
+    }
+    if (light > 100) {
+        light = 100;
+    }
+    if (g_active_level == 0) {
+        light = 100 - light;
+    }
+
+    uint16_t duty = 1024.0 / 100.0 * light;
+    if (duty == light_duty_now) {
+        return ;
+    }
+
+    light_duty_now = duty;
+    ledc_set_fade_time_and_start(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL, duty, max_fade_time_ms, wait_done ? LEDC_FADE_WAIT_DONE : LEDC_FADE_NO_WAIT);
 }

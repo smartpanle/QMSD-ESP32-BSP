@@ -67,6 +67,9 @@ void qmsd_board_backlight_set(float light);
 // light: 0.0 ~ 100.0, delay ms to set backlight
 void qmsd_board_backlight_set_delay(float light, uint32_t delay_ms);
 
+// light: 0.0 ~ 100.0, fade time ms to set backlight
+void qmsd_board_backlight_fade_with_time(float light, uint32_t max_fade_time_ms, uint8_t wait_done);
+
 #ifdef __cplusplus
 }
 #endif
