@@ -54,7 +54,7 @@
 #include "hal/gdma_ll.h"
 #include "rom/cache.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
 #define lcd_periph_signals lcd_periph_rgb_signals
 #endif
 
