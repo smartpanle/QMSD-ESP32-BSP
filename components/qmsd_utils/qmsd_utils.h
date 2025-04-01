@@ -91,6 +91,8 @@ struct tm* qmsd_time_get_tm();
 
 void qmsd_time_set_time(time_t timestamp);
 
+char* qmsd_get_device_mac_id();
+
 void qmsd_debug_task_print(uint32_t interval_time);
 
 void qmsd_debug_heap_print(uint32_t caps, uint32_t interval_time);
@@ -105,7 +107,7 @@ void qmsd_free(void* p);
 
 // Note: If stack_in_ext is true, deleting tasks will cause memory leaks, so it can only be used for threads that never end !!!!
 esp_err_t qmsd_thread_create(TaskFunction_t main_func, const char* const name, const uint32_t stack, void* const arg,
-                             UBaseType_t prio, TaskHandle_t* const p_handle, const BaseType_t core_id, uint8_t stack_in_ext);
+                             UBaseType_t prio, TaskHandle_t* const p_handle, BaseType_t core_id, uint8_t stack_in_ext);
 
 #ifdef __cplusplus
 }

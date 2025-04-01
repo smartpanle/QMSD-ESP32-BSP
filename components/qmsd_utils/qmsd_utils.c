@@ -6,6 +6,8 @@
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_mac.h"
+
 #define TAG "qmsd_utils"
 #define REF_TIME        1577808000 /* 2020-01-01 00:00:00 */
 
@@ -47,6 +49,18 @@ void qmsd_time_set_time(time_t timestamp) {
     tv.tv_usec = 0;
 
     settimeofday(&tv, NULL);
+}
+
+char* qmsd_get_device_mac_id() {
+    static char mac_id[13] = {0x0};
+    if (mac_id[0]) {
+        return mac_id;
+    }
+
+    uint8_t mac[6] = {0};
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    sprintf(mac_id, "%02x%02x%02x%02x%02x%02x", MAC2STR(mac));
+    return mac_id;
 }
 
 static void esp_mem_print_task() {
@@ -127,23 +141,24 @@ void qmsd_debug_heap_print(uint32_t caps, uint32_t interval_time) {
 
 //static int __malloc_cont =0;
 
-void* qmsd_malloc(size_t size)
-{
-    void* mem = malloc(size);
-    //__malloc_cont++;
-    //printf("malloc: %d\n", __malloc_cont);
-    return mem;
+void* qmsd_malloc(size_t size) {
+    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 }
 
 void qmsd_free(void* p)
 {
     free(p);
-    //__malloc_cont--;
-    //printf("free: %d\n", __malloc_cont);
 }
 
 esp_err_t qmsd_thread_create(TaskFunction_t main_func, const char* const name, const uint32_t stack_size, void* const arg,
-                             UBaseType_t prio, TaskHandle_t* const p_handle, const BaseType_t core_id, uint8_t stack_in_ext) {
+                             UBaseType_t prio, TaskHandle_t* const p_handle, BaseType_t core_id, uint8_t stack_in_ext) {
+#if CONFIG_SOC_CPU_CORES_NUM < 2
+    core_id = 0;
+#endif
+#ifndef CONFIG_SPIRAM
+    stack_in_ext = false;
+#endif
+
     if (stack_in_ext) {
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 2, 0)
         assert(false && "thread in psarm only support idf version >= 5.2.0 !");
