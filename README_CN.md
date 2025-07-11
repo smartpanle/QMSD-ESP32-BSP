@@ -11,6 +11,7 @@ qmsd-esp32-bsp 包含了屏幕驱动、触摸功能和 UI 框架等，方便用�
 - ZX2D10CE01S-4848
 - ZX2D10GE01R-V-4848
 - ZX2D80CECOF-2432
+- ZX2D80CE02S-2432
 - ZX3D50CE02S-USRC-4832
 - ZX3D95CE01S-AR-4848
 - ZX3D95CE01S-TR-4848
@@ -52,6 +53,7 @@ ESP-IDF 支持
 -   [v5.1 release](https://github.com/espressif/esp-idf/tree/release/v5.1)     
 -   [v5.2 release](https://github.com/espressif/esp-idf/tree/release/v5.2)     
 -   [v5.3 release](https://github.com/espressif/esp-idf/tree/release/v5.3)     
+-   [v5.4 release](https://github.com/espressif/esp-idf/tree/release/v5.4)     
 
 
 使用前依赖：
