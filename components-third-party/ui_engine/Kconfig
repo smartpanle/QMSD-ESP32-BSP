@@ -2,13 +2,14 @@ menu "LVGL configuration"
     choice UI_ENGINE
         prompt "Select UI_ENGINE"
         default QMSD_GUI_LVGL_V8
-        config QMSD_GUI_LVGL_V7
-            bool "LVGL_V7"
         config QMSD_GUI_LVGL_V8
             bool "LVGL_V8"
+        config QMSD_GUI_LVGL_V9
+            bool "LVGL_V9"
     endchoice
 
     rsource "./lvgl8/lvgl/Kconfig"
 
-    rsource "./lvgl7/lvgl/Kconfig"
+    rsource "./lvgl9/lvgl/Kconfig"
+
 endmenu

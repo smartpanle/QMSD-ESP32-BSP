@@ -1,22 +1,17 @@
+
 if(CONFIG_QMSD_GUI_LVGL_V7)
-    set(engine_include
-        "lvgl7/"
-        "lvgl7/lvgl/"
-        "lvgl7/lvgl/src"
-    )
-    file(GLOB_RECURSE UI_ENGINE_SRC lvgl7/*.c)
+    set(LVGL_ROOT_DIR lvgl7)
 elseif(CONFIG_QMSD_GUI_LVGL_V8)
-    set(engine_include 
-        "lvgl8/"
-        "lvgl8/lvgl/"
-        "lvgl8/lvgl/src"
-    ) 
-    file(GLOB_RECURSE UI_ENGINE_SRC lvgl8/*.c)  
+    set(LVGL_ROOT_DIR lvgl8)
+elseif(CONFIG_QMSD_GUI_LVGL_V9)
+    set(LVGL_ROOT_DIR lvgl9)
 endif()
 
-idf_component_register( 
-    SRCS ${UI_ENGINE_SRC}
-    INCLUDE_DIRS "${engine_include}"
+file(GLOB_RECURSE SOURCES ${LVGL_ROOT_DIR}/lvgl/src/*.c)
+
+idf_component_register(
+    SRCS ${SOURCES}
+    INCLUDE_DIRS ${LVGL_ROOT_DIR} ${LVGL_ROOT_DIR}/lvgl ${LVGL_ROOT_DIR}/lvgl/src
 )
 
 target_compile_definitions(${COMPONENT_LIB} INTERFACE LV_CONF_INCLUDE_SIMPLE=1)
