@@ -1,5 +1,6 @@
 
 #include "qmsd_button.h"
+#include "qmsd_utils.h"
 
 #define BTN_EVENT_CB(ev) do { \
 	xEventGroupSetBits(handle->event_group, 1 << ev);	\
@@ -37,7 +38,7 @@ void qmsd_button_init(qmsd_button_config_t* config) {
 		if (g_button_config->update_task.stack == 0) {
 			g_button_config->update_task.stack = 4 * 1024;
 		}
-        xTaskCreatePinnedToCore(qmsd_button_update_task, "btn-update", g_button_config->update_task.stack, NULL, g_button_config->update_task.priority, NULL, g_button_config->update_task.core);
+        qmsd_thread_create(qmsd_button_update_task, "btn-update", g_button_config->update_task.stack, NULL, g_button_config->update_task.priority, NULL, g_button_config->update_task.core, g_button_config->update_task.task_in_psram);
     }
 }
 

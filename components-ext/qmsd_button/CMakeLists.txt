@@ -1,4 +1,4 @@
-set(requires driver)
+set(requires driver qmsd_utils)
 
 if("${IDF_VERSION_MAJOR}" VERSION_GREATER_EQUAL "5")
     list(APPEND requires esp_adc)
