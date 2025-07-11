@@ -12,6 +12,8 @@ menu "QMSD Hal"
             bool "ZX2D10GE01R_V_4848"
         config ZX2D10CE01S_4848
             bool "ZX2D10CE01S_4848"
+        config ZX2D80CE02S_2432
+            bool "ZX2D80CE02S_2432"
         config ZX2D80CECOF_2432
             bool "ZX2D80CECOF_2432"
         config ZX3D50CE02S_USRC_4832
