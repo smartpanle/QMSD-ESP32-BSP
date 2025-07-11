@@ -182,4 +182,42 @@ UINT CalcTimeDifference(UINT startTime, UINT endTime)
 		return (startTime - endTime);
 }
 
+#elif __GNUC__
+
+int InitTimer(void)
+{
+	return 0;
+}
+
+UINT ReadTimer(void)
+{
+    // TODO: implement this
+    return 0;
+}
+
+int FreeTimer(void)
+{
+    return 0;
+}
+
+UINT GetClockFrequency(void)
+{
+    return 0;
+}
+
+UINT GetClockDivFactor(void)
+{
+    return 0;
+}
+
+UINT CalcTimeDifference(UINT startTime, UINT endTime)
+{
+    // TODO: implement this
+    return 0;
+}
+
+#else
+
+#error No implementation for timer
+
 #endif

@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	short outBuf[MAX_NCHAN * MAX_NGRAN * MAX_NSAMP];
 	FILE *infile, *outfile;
 	int initFlag, chans, bits;
-	unsigned long sampRate, outBytes;
+	unsigned long sample, outBytes;
 	CMpaDecObj *decobj;
 
 	if (argc != 3) {
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 				return -1;	/* init error */
 			DebugMemCheckEndPoint();
 	
-			decobj->GetPCMInfo_v(sampRate, chans, bits);
+			decobj->GetPCMInfo_v(sample, chans, bits);
 			decobj->GetSamplesPerFrame_n();
 			initFlag = 1;
 		}

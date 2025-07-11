@@ -69,7 +69,8 @@ static int FillReadBuffer(unsigned char *readBuf, unsigned char *readPtr, int bu
 
 int main(int argc, char **argv)
 {
-	int bytesLeft, nRead, err, offset, outOfData, eofReached;
+	size_t bytesLeft;
+	int nRead, err, offset, outOfData, eofReached;
 	unsigned char readBuf[READBUF_SIZE], *readPtr;
 	short outBuf[MAX_NCHAN * MAX_NGRAN * MAX_NSAMP];
 	FILE *infile, *outfile;
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
 
 		/* decode one MP3 frame - if offset < 0 then bytesLeft was less than a full frame */
 		startTime = ReadTimer();
- 		err = MP3Decode(hMP3Decoder, &readPtr, &bytesLeft, outBuf, 0);
+		err = MP3Decode(hMP3Decoder, (const unsigned char**)&readPtr, &bytesLeft, outBuf, 0);
  		nFrames++;
  		
  		endTime = ReadTimer();
@@ -182,9 +183,9 @@ int main(int argc, char **argv)
 
 #ifdef ARM_ADS	
 	MP3GetLastFrameInfo(hMP3Decoder, &mp3FrameInfo);
-	audioSecs = ((float)nFrames * mp3FrameInfo.outputSamps) / ( (float)mp3FrameInfo.samprate * mp3FrameInfo.nChans);
+	audioSecs = ((float)nFrames * mp3FrameInfo.outputSamps) / ( (float)mp3FrameInfo.sample * mp3FrameInfo.nChans);
 	printf("\nTotal clock ticks = %d, MHz usage = %.2f\n", totalDecTime, ARMULATE_MUL_FACT * (1.0f / audioSecs) * totalDecTime * GetClockDivFactor() / 1e6f);
-	printf("nFrames = %d, output samps = %d, sampRate = %d, nChans = %d\n", nFrames, mp3FrameInfo.outputSamps, mp3FrameInfo.samprate, mp3FrameInfo.nChans);
+	printf("nFrames = %d, output samps = %d, sample = %d, nChans = %d\n", nFrames, mp3FrameInfo.outputSamps, mp3FrameInfo.sample, mp3FrameInfo.nChans);
 #endif
 
 	MP3FreeDecoder(hMP3Decoder);
