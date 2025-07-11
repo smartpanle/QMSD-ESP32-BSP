@@ -32,7 +32,6 @@ static uint8_t BCD2Byte(uint8_t data) {
 void PCF8563_Init(int8_t sda, int8_t scl) {
     pcf8563_device = i2c_malloc_device(I2C_NUM_0, sda, scl, 400000, PCF8563_ADDR);
     I2CWriteByte(0x00, 0x00);
-    I2CWriteByte(0x01, 0x00);
     I2CWriteByte(0x0D, 0x00);
 }
 
@@ -151,9 +150,7 @@ uint8_t PCF8563_GetIRQ() {
 }
 
 void PCF8563_ClearIRQ() {
-    uint8_t data;
-    I2CRead(0x01, &data, 1);
-    I2CWriteByte(0x01, data & 0xf3);
+    I2CWriteByte(0x01, 0x00);
 }
 
 void PCF8563_SetClkout(rtc_clkout_freq_t frq) {
