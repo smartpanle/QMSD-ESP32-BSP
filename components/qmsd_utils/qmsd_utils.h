@@ -4,6 +4,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
+#include "soc/gpio_periph.h"
+#include "hal/gpio_hal.h"
 #include "esp_idf_version.h"
 #include "esp_log.h"
 #include "qmsd_err.h"
@@ -16,6 +18,23 @@ extern "C" {
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
 #define gpio_pad_select_gpio esp_rom_gpio_pad_select_gpio
 #define portTICK_RATE_MS portTICK_PERIOD_MS
+#endif
+
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0))
+#define gpio_hal_iomux_func_sel(pin_name, func) do { \
+        int gpio_num = -1; \
+        for (size_t i = 0; i < SOC_GPIO_PIN_COUNT; i++) { \
+            if (GPIO_PIN_MUX_REG[i] == (pin_name)) { \
+                gpio_num = i; \
+                break; \
+            } \
+        } \
+        if (gpio_num >= 0) { \
+            gpio_ll_func_sel(&GPIO, gpio_num, func); \
+        } else { \
+            ESP_LOGE("GPIO", "Invalid pin_name: 0x%lx", (unsigned long)(pin_name)); \
+        } \
+    } while(0)
 #endif
 
 #define QMSD_ERROR_CHECK(con, err, format, ...) do { \

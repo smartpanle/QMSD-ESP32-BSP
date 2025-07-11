@@ -12,6 +12,7 @@
 #include <string.h>
 #include "esp_lcd_types.h"
 #include "soc/soc_caps.h"
+#include "qmsd_utils.h"
 
 #if SOC_LCD_RGB_SUPPORTED
 
@@ -55,11 +56,22 @@
 #include "rom/cache.h"
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+#include "esp_private/esp_clk_tree_common.h"
+#include "esp_private/gdma_link.h"
+#include "esp_private/periph_ctrl.h"
+#include "esp_private/gpio.h"
 #define lcd_periph_signals lcd_periph_rgb_signals
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
 #define lcd_ll_set_data_width(x, y) lcd_ll_set_dma_read_stride(x, y)
+#if defined(SOC_GDMA_TRIG_PERIPH_LCD0_BUS) && (SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AHB)
+#define LCD_GDMA_NEW_CHANNEL gdma_new_ahb_channel
+#define LCD_GDMA_DESCRIPTOR_ALIGN 4
+#elif defined(SOC_GDMA_TRIG_PERIPH_LCD0_BUS) && (SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AXI)
+#define LCD_GDMA_NEW_CHANNEL gdma_new_axi_channel
+#define LCD_GDMA_DESCRIPTOR_ALIGN 8
+#endif
 #endif
 
 #if CONFIG_LCD_RGB_ISR_IRAM_SAFE
@@ -67,6 +79,7 @@
 #else
 #define LCD_RGB_INTR_ALLOC_FLAGS     ESP_INTR_FLAG_INTRDISABLED
 #endif
+#define RGB_LCD_PANEL_MAX_FB_NUM         3 // maximum supported frame buffer number
 
 static const char *TAG = "lcd_panel.rgb";
 
@@ -130,9 +143,15 @@ struct esp_rgb_panel_t {
         uint32_t bb_invalidate_cache: 1; // Whether to do cache invalidation in bounce buffer mode
         uint32_t avoid_te: 1;
     } flags;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+    uint8_t bb_eof_count;
+    gdma_link_list_handle_t dma_bb_link; // DMA link list for bounce buffer
+    gdma_link_list_handle_t dma_fb_links[RGB_LCD_PANEL_MAX_FB_NUM]; // DMA link lists for multiple frame buffers
+#else
     dma_descriptor_t *dma_links[2];    // fbs[0] <-> dma_links[0], fbs[1] <-> dma_links[1]
     dma_descriptor_t dma_restart_node; // DMA descriptor used to restart the transfer
     dma_descriptor_t dma_nodes[];      // DMA descriptors pool
+#endif
 };
 
 static esp_err_t lcd_rgb_panel_alloc_frame_buffers(const qmsd_lcd_rgb_panel_config_t *rgb_panel_config, esp_rgb_panel_t *rgb_panel)
@@ -243,6 +262,11 @@ esp_err_t qmsd_lcd_new_rgb_panel(const qmsd_lcd_rgb_panel_config_t *rgb_panel_co
                           "fb size must be even multiple of bounce buffer size, fb_size: %d, bb_size: %d", fb_size, bb_size);
     }
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+    rgb_panel = heap_caps_calloc(1, sizeof(esp_rgb_panel_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    rgb_panel->bb_eof_count = 0;
+    ESP_GOTO_ON_FALSE(rgb_panel, ESP_ERR_NO_MEM, err, TAG, "no mem for rgb panel");
+#else
     // calculate the number of DMA descriptors
     size_t num_dma_nodes = 0;
     if (bb_size) {
@@ -260,6 +284,7 @@ esp_err_t qmsd_lcd_new_rgb_panel(const qmsd_lcd_rgb_panel_config_t *rgb_panel_co
                                  MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     ESP_GOTO_ON_FALSE(rgb_panel, ESP_ERR_NO_MEM, err, TAG, "no mem for rgb panel");
     rgb_panel->num_dma_nodes = num_dma_nodes;
+#endif
     rgb_panel->fb_size = fb_size;
     rgb_panel->bb_size = bb_size;
     rgb_panel->panel_id = -1;
@@ -562,8 +587,16 @@ normal:
         if (rgb_panel->flags.stream_mode) {
             int64_t time_start = esp_timer_get_time();
             // the DMA will convey the new frame buffer next time
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+            for (int i = 0; i < 2; i++) {
+                // Note, because of DMA prefetch, there's possibility that the old frame buffer might be sent out again
+                // it's hard to know the time when the new frame buffer starts
+                gdma_link_concat(rgb_panel->dma_fb_links[i], -1, rgb_panel->dma_fb_links[rgb_panel->cur_fb_index], 0);
+            }
+#else
             rgb_panel->dma_nodes[rgb_panel->num_dma_nodes - 1].next = rgb_panel->dma_links[rgb_panel->cur_fb_index];
             rgb_panel->dma_nodes[rgb_panel->num_dma_nodes * 2 - 1].next = rgb_panel->dma_links[rgb_panel->cur_fb_index];
+#endif
 
             if (rgb_panel->flags.avoid_te) {
                 xSemaphoreTake(rgb_panel->flush_ready, 0);
@@ -727,10 +760,15 @@ static IRAM_ATTR bool lcd_rgb_panel_fill_bounce_buffer(esp_rgb_panel_t *panel, u
 static IRAM_ATTR bool lcd_rgb_panel_eof_handler(gdma_channel_handle_t dma_chan, gdma_event_data_t *event_data, void *user_data)
 {
     esp_rgb_panel_t *panel = (esp_rgb_panel_t *)user_data;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+    int bb = panel->bb_eof_count % 2;
+    panel->bb_eof_count++;
+#else
     dma_descriptor_t *desc = (dma_descriptor_t *)event_data->tx_eof_desc_addr;
     // Figure out which bounce buffer to write to.
     // Note: what we receive is the *last* descriptor of this bounce buffer.
     int bb = (desc == &panel->dma_nodes[panel->num_dma_nodes - 1]) ? 0 : 1;
+#endif
     return lcd_rgb_panel_fill_bounce_buffer(panel, panel->bounce_buffer[bb]);
 }
 
@@ -740,6 +778,52 @@ static IRAM_ATTR bool lcd_rgb_panel_eof_handler(gdma_channel_handle_t dma_chan, 
 
 static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
 {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+    if (panel->bb_size) {
+        size_t num_dma_nodes_per_bounce_buffer = (panel->bb_size + LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE - 1) / LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+        gdma_link_list_config_t link_cfg = {
+            .buffer_alignment = panel->sram_trans_align,
+            .item_alignment = LCD_GDMA_DESCRIPTOR_ALIGN,
+            .num_items = num_dma_nodes_per_bounce_buffer * 2,
+            .flags = {
+                .check_owner = true,
+            }
+        };
+        ESP_RETURN_ON_ERROR(gdma_new_link_list(&link_cfg, &panel->dma_bb_link), TAG, "create bounce buffer DMA link failed");
+        // mount bounce buffers to the DMA link list
+        gdma_buffer_mount_config_t mount_cfgs[2] = {0};
+        for (int i = 0; i < 2; i++) {
+            mount_cfgs[i].buffer = panel->bounce_buffer[i];
+            mount_cfgs[i].length = panel->bb_size;
+            mount_cfgs[i].flags.mark_eof = true;  // we use the DMA EOF interrupt to copy the frame buffer (partially) to the bounce buffer
+        }
+        ESP_RETURN_ON_ERROR(gdma_link_mount_buffers(panel->dma_bb_link, 0, mount_cfgs, 2, NULL), TAG, "mount DMA bounce buffers failed");
+    } else {
+        size_t num_dma_nodes = (panel->fb_size + LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE - 1) / LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE + 1;
+        gdma_link_list_config_t link_cfg = {
+            .buffer_alignment = panel->flags.fb_in_psram ? panel->psram_trans_align : panel->sram_trans_align,
+            .item_alignment = LCD_GDMA_DESCRIPTOR_ALIGN,
+            .num_items = num_dma_nodes,
+            .flags = {
+                .check_owner = true,
+            },
+        };
+        gdma_buffer_mount_config_t mount_cfg = {
+            .length = panel->fb_size,
+            .flags = {
+                .mark_final = panel->flags.stream_mode ? false : true,
+                .mark_eof = true,
+            },
+        };
+        for (size_t i = 0; i < 2; i++) {
+            ESP_RETURN_ON_ERROR(gdma_new_link_list(&link_cfg, &panel->dma_fb_links[i]), TAG, "create frame buffer DMA link failed");
+            // mount bounce buffers to the DMA link list
+            mount_cfg.buffer = panel->fbs[i];
+            ESP_RETURN_ON_ERROR(gdma_link_mount_buffers(panel->dma_fb_links[i], 0, &mount_cfg, 1, NULL), TAG, "mount DMA frame buffer failed");
+        }
+    }
+
+#else
     panel->dma_links[0] = &panel->dma_nodes[0];
     panel->dma_links[1] = &panel->dma_nodes[panel->num_dma_nodes];
     // chain DMA descriptors
@@ -770,7 +854,7 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
             lcd_com_mount_dma_data(panel->dma_links[1], panel->fbs[1], panel->fb_size);
         }
     }
-
+#endif
 #if CONFIG_LCD_RGB_RESTART_IN_VSYNC
     // On restart, the data sent to the LCD peripheral needs to start LCD_FIFO_PRESERVE_SIZE_PX pixels after the FB start
     // so we use a dedicated DMA node to restart the DMA transaction
@@ -787,11 +871,7 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
     };
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-#if SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AHB
-    ESP_RETURN_ON_ERROR(gdma_new_ahb_channel(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
-#elif SOC_GDMA_TRIG_PERIPH_LCD0_BUS == SOC_GDMA_BUS_AXI
-    ESP_RETURN_ON_ERROR(gdma_new_axi_channel(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
-#endif
+    ESP_RETURN_ON_ERROR(LCD_GDMA_NEW_CHANNEL(&dma_chan_config, &panel->dma_chan), TAG, "alloc DMA channel failed");
     gdma_connect(panel->dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
 
     // configure DMA transfer parameters
@@ -862,9 +942,16 @@ static void lcd_rgb_panel_start_transmission(esp_rgb_panel_t *rgb_panel)
         lcd_rgb_panel_fill_bounce_buffer(rgb_panel, rgb_panel->bounce_buffer[0]);
         lcd_rgb_panel_fill_bounce_buffer(rgb_panel, rgb_panel->bounce_buffer[1]);
     }
-
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+    if (rgb_panel->bb_size) {
+        gdma_start(rgb_panel->dma_chan, gdma_link_get_head_addr(rgb_panel->dma_bb_link));
+    }  else {
+        gdma_start(rgb_panel->dma_chan, gdma_link_get_head_addr(rgb_panel->dma_fb_links[rgb_panel->cur_fb_index]));
+    }
+#else
     // the start of DMA should be prior to the start of LCD engine
     gdma_start(rgb_panel->dma_chan, (intptr_t)rgb_panel->dma_links[rgb_panel->cur_fb_index]);
+#endif
     // delay 1us is sufficient for DMA to pass data to LCD FIFO
     // in fact, this is only needed when LCD pixel clock is set too high
     esp_rom_delay_us(1);
@@ -964,7 +1051,11 @@ static uint32_t qmsd_lcd_hal_cal_pclk_freq(lcd_hal_context_t *hal, uint32_t src_
 {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     hal_utils_clk_div_t lcd_clk_div = {};
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+    uint32_t pclk_hz = lcd_hal_cal_pclk_freq(hal, src_freq_hz, expect_pclk_freq_hz, &lcd_clk_div);
+#else
     uint32_t pclk_hz = lcd_hal_cal_pclk_freq(hal, src_freq_hz, expect_pclk_freq_hz, 0, &lcd_clk_div);
+#endif
     LCD_CLOCK_SRC_ATOMIC() {
         lcd_ll_set_group_clock_coeff(hal->dev, lcd_clk_div.integer, lcd_clk_div.denominator, lcd_clk_div.numerator);
     }

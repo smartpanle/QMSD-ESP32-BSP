@@ -26,6 +26,7 @@
 #include "soc/gdma_periph.h"
 #include "soc/gdma_reg.h"
 #include "hal/gpio_hal.h"
+#include "qmsd_utils.h"
 
 #include "i2s_lcd_driver.h"
 
