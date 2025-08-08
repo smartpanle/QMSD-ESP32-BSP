@@ -58,6 +58,8 @@
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
 #include "esp_private/esp_clk_tree_common.h"
 #include "esp_private/gdma_link.h"
+#include "esp_private/gdma.h"
+#include "esp_private/esp_dma_utils.h"
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/gpio.h"
 #define lcd_periph_signals lcd_periph_rgb_signals
@@ -780,7 +782,7 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
 {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
     if (panel->bb_size) {
-        size_t num_dma_nodes_per_bounce_buffer = (panel->bb_size + LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE - 1) / LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+        size_t num_dma_nodes_per_bounce_buffer = esp_dma_calculate_node_count(panel->bb_size, panel->sram_trans_align, LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE);
         gdma_link_list_config_t link_cfg = {
             .buffer_alignment = panel->sram_trans_align,
             .item_alignment = LCD_GDMA_DESCRIPTOR_ALIGN,
@@ -799,7 +801,7 @@ static esp_err_t lcd_rgb_panel_create_trans_link(esp_rgb_panel_t *panel)
         }
         ESP_RETURN_ON_ERROR(gdma_link_mount_buffers(panel->dma_bb_link, 0, mount_cfgs, 2, NULL), TAG, "mount DMA bounce buffers failed");
     } else {
-        size_t num_dma_nodes = (panel->fb_size + LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE - 1) / LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE + 1;
+        size_t num_dma_nodes = esp_dma_calculate_node_count(panel->fb_size, panel->flags.fb_in_psram ? panel->psram_trans_align : panel->sram_trans_align, LCD_DMA_DESCRIPTOR_BUFFER_MAX_SIZE);
         gdma_link_list_config_t link_cfg = {
             .buffer_alignment = panel->flags.fb_in_psram ? panel->psram_trans_align : panel->sram_trans_align,
             .item_alignment = LCD_GDMA_DESCRIPTOR_ALIGN,
